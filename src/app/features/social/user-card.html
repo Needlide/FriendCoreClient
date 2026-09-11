@@ -1,0 +1,14 @@
+<div class="card">
+  <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+  <div class="who">
+    <strong>{{ displayName() }}</strong>
+    <span class="username">@{{ username() }}</span>
+    @if (bio()) {
+      <span class="bio">{{ bio() }}</span>
+    }
+  </div>
+  <div class="side">
+    <fc-follow-button [username]="username()" />
+    <fc-block-mute-menu [username]="username()" (blocked)="blocked.emit($event)" />
+  </div>
+</div>

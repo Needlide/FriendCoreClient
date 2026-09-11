@@ -1,0 +1,27 @@
+.fc-primary,
+.fc-secondary {
+  font: inherit;
+  font-weight: 600;
+  min-height: 2.5rem;
+  padding: 0 var(--fc-space-4);
+  border-radius: var(--fc-radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fc-primary {
+  border: 0;
+  background: var(--fc-accent);
+  color: var(--fc-accent-contrast);
+}
+
+.fc-secondary {
+  border: 1px solid var(--fc-border);
+  background: var(--fc-surface);
+  color: var(--fc-text);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

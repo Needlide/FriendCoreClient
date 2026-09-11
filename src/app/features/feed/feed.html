@@ -1,0 +1,46 @@
+<div class="feed-page">
+  <h1 class="fc-sr-only">Home</h1>
+  <p class="feed-note">Latest from people you follow, newest first.</p>
+
+  <fc-composer (postCreated)="prepend($event)" />
+
+  @if (loading()) {
+    <p role="status">Loading your feed…</p>
+  } @else if (error()) {
+    <fc-auth-error [error]="error()" context="generic" />
+    <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
+  } @else {
+    @if (posts().length === 0) {
+      <section class="empty" aria-labelledby="empty-h">
+        <h2 id="empty-h">Your feed is empty</h2>
+        <p>Follow people to see their posts here.</p>
+        <a routerLink="/onboarding">Review your interests</a>
+      </section>
+    } @else {
+      <ol class="posts">
+        @for (p of posts(); track p.id) {
+          <li>
+            <fc-post-card
+              [post]="p"
+              [canDelete]="p.authorId === auth.session()?.userId"
+              (deleted)="drop($event)"
+            />
+          </li>
+        }
+      </ol>
+
+      @if (!exhausted) {
+        <button
+          type="button"
+          class="fc-secondary load-more"
+          [disabled]="loadingMore()"
+          (click)="loadMore()"
+        >
+          {{ loadingMore() ? 'Loading…' : 'Load more' }}
+        </button>
+      } @else {
+        <p class="end">You're all caught up.</p>
+      }
+    }
+  }
+</div>

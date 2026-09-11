@@ -1,0 +1,58 @@
+<div class="discover-page">
+  <h1>Discover</h1>
+
+  <div class="tabs" role="tablist" aria-label="Discovery">
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="tab() === 'people'"
+      [class.active]="tab() === 'people'"
+      (click)="switchTab('people')"
+    >
+      People
+    </button>
+    <button
+      type="button"
+      role="tab"
+      [attr.aria-selected]="tab() === 'posts'"
+      [class.active]="tab() === 'posts'"
+      (click)="switchTab('posts')"
+    >
+      Posts
+    </button>
+  </div>
+
+  @if (loading()) {
+    <p role="status">Looking around…</p>
+  } @else if (error()) {
+    <fc-auth-error [error]="error()" context="generic" />
+    <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
+  } @else if (tab() === 'people') {
+    @if (people().length === 0) {
+      <p>Nothing new to discover right now. Check back later.</p>
+    } @else {
+      <ul class="rows">
+        @for (p of people(); track p.id) {
+          <li>
+            <fc-user-card
+              [username]="p.username"
+              [displayName]="p.displayName"
+              [bio]="p.bio"
+              (blocked)="dropBlocked($event)"
+            />
+          </li>
+        }
+      </ul>
+    }
+  } @else {
+    @if (posts().length === 0) {
+      <p>No posts match your interests yet.</p>
+    } @else {
+      <ol class="rows posts">
+        @for (p of posts(); track p.id) {
+          <li><fc-post-card [post]="p" /></li>
+        }
+      </ol>
+    }
+  }
+</div>

@@ -1,0 +1,46 @@
+<header class="topbar">
+  <a class="brand" routerLink="/">FriendCore</a>
+  <nav aria-label="Main">
+    <a
+      routerLink="/"
+      routerLinkActive="active"
+      [routerLinkActiveOptions]="{ exact: true }"
+      #homeRla="routerLinkActive"
+      [attr.aria-current]="homeRla.isActive ? 'page' : null"
+      >Home</a
+    >
+    <a
+      routerLink="/discover"
+      routerLinkActive="active"
+      #discoverRla="routerLinkActive"
+      [attr.aria-current]="discoverRla.isActive ? 'page' : null"
+      >Discover</a
+    >
+    <a
+      routerLink="/messages"
+      routerLinkActive="active"
+      #messagesRla="routerLinkActive"
+      [attr.aria-current]="messagesRla.isActive ? 'page' : null"
+      >Messages</a
+    >
+  </nav>
+  <div class="tools">
+    <fc-notification-bell [unread]="unread()" />
+    <details #menu class="avatar-menu">
+      <summary [attr.aria-label]="'Account menu for ' + (myUsername() ?? 'you')">
+        {{ (myUsername() ?? '?')[0]?.toUpperCase() }}
+      </summary>
+      <div class="items" role="menu" aria-label="Account">
+        <a role="menuitem" [routerLink]="['/u', myUsername()]" (click)="menu.open = false"
+          >Profile</a
+        >
+        <a role="menuitem" routerLink="/settings" (click)="menu.open = false">Settings</a>
+        <a role="menuitem" routerLink="/help" (click)="menu.open = false">Help &amp; support</a>
+        <button role="menuitem" type="button" (click)="menu.open = false; logout()">Log out</button>
+      </div>
+    </details>
+  </div>
+</header>
+<main id="main-content">
+  <router-outlet />
+</main>

@@ -1,0 +1,51 @@
+<div class="tag-input">
+  <label [for]="inputId">{{ label() }}</label>
+  <div class="combo-wrap">
+    <input
+      [id]="inputId"
+      type="text"
+      role="combobox"
+      autocomplete="off"
+      [placeholder]="placeholder()"
+      [formControl]="search"
+      aria-expanded="{{ open() }}"
+      aria-controls="{{ listId }}"
+      aria-activedescendant="{{ activeDescendant() }}"
+      (keydown)="onKeydown($event)"
+      (focus)="reopen()"
+      (blur)="onBlur()"
+    />
+    @if (open()) {
+      <ul class="suggestions" role="listbox" [id]="listId">
+        @for (s of suggestions(); track s.id; let i = $index) {
+          <li
+            role="option"
+            [id]="optionId(i)"
+            [attr.aria-selected]="i === activeIndex()"
+            [class.active]="i === activeIndex()"
+            (mousedown)="pickSuggestion(s)"
+          >
+            <span>{{ s.name }}</span>
+            @if (s.totalCount > 0) {
+              <span class="count"
+                >{{ s.totalCount }} {{ s.totalCount === 1 ? 'person' : 'people' }}</span
+              >
+            }
+          </li>
+        }
+        @if (showFirstUse()) {
+          <li
+            role="option"
+            [id]="optionId(suggestions().length)"
+            [attr.aria-selected]="activeIndex() === suggestions().length"
+            [class.active]="activeIndex() === suggestions().length"
+            class="first-use"
+            (mousedown)="pickFirstUse()"
+          >
+            Use “{{ currentText() }}” — you're the first
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

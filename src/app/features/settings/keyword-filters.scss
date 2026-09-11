@@ -1,0 +1,81 @@
+.settings-page {
+  max-width: var(--fc-content-max);
+  margin: 0 auto;
+  padding: var(--fc-space-4);
+  display: grid;
+  gap: var(--fc-space-3);
+}
+
+h1 {
+  margin: 0;
+  font-size: var(--fc-text-xl);
+}
+
+.lede,
+.muted {
+  margin: 0;
+  color: var(--fc-text-muted);
+}
+
+.add {
+  display: flex;
+  gap: var(--fc-space-2);
+}
+
+.add input {
+  font: inherit;
+  flex: 1;
+  color: var(--fc-text);
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-2) var(--fc-space-3);
+}
+
+.add button {
+  font: inherit;
+  font-weight: 600;
+  min-height: 2.75rem;
+  padding: 0 var(--fc-space-4);
+  border: 0;
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-accent);
+  color: var(--fc-accent-contrast);
+  cursor: pointer;
+}
+
+.add button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fc-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fc-space-1);
+  background: var(--fc-surface-2);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-1) var(--fc-space-2);
+}
+
+.chip button {
+  border: 0;
+  background: none;
+  color: var(--fc-text-muted);
+  cursor: pointer;
+  /* WCAG 2.5.8: pointer targets ≥ 24×24 (the × glyph alone is ~16px). */
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0;
+  font-size: var(--fc-text-base);
+  line-height: 1;
+}

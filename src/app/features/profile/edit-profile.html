@@ -1,0 +1,36 @@
+<div class="settings-page">
+  <h1>Edit profile</h1>
+  <p class="lede">How you appear to everyone.</p>
+
+  @if (loading()) {
+    <p role="status">Loading…</p>
+  } @else {
+    <fc-auth-error [error]="error()" context="generic" />
+    @if (saved()) {
+      <p role="status">Saved — taking you back…</p>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="fc-field">
+        <label for="ep-display">Display name</label>
+        <input id="ep-display" type="text" autocomplete="nickname" formControlName="displayName" />
+      </div>
+      <div class="fc-field">
+        <label for="ep-bio">Bio</label>
+        <textarea id="ep-bio" rows="3" formControlName="bio"></textarea>
+      </div>
+      <div class="fc-field">
+        <label for="ep-website">Website</label>
+        <input id="ep-website" type="url" autocomplete="url" formControlName="websiteUrl" />
+      </div>
+      <div class="fc-field">
+        <label for="ep-location">Location</label>
+        <input id="ep-location" type="text" formControlName="location" />
+        <p class="hint">Free text — a place name, not your GPS position.</p>
+      </div>
+      <button class="fc-submit" type="submit" [disabled]="saving()">
+        {{ saving() ? 'Saving…' : 'Save changes' }}
+      </button>
+    </form>
+  }
+</div>

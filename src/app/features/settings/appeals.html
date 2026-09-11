@@ -1,0 +1,58 @@
+<div class="settings-page">
+  <h1>Moderation & appeals</h1>
+  <p class="lede">Actions taken on your account. Appeals are reviewed by a different moderator.</p>
+
+  @if (loading()) {
+    <p role="status">Loading…</p>
+  } @else if (error()) {
+    <fc-auth-error [error]="error()" context="generic" />
+    <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
+  } @else if (actions().length === 0) {
+    <p class="muted">No moderation actions on your account. Clean record.</p>
+  } @else {
+    <ul class="rows">
+      @for (a of actions(); track a.id) {
+        <li class="row">
+          <div class="head">
+            <strong>{{ a.action }}</strong>
+            <time [attr.datetime]="a.createdAt">{{ a.createdAt | relativeTime }}</time>
+          </div>
+          <p class="reason">{{ a.reason }}</p>
+          @if (sentFor() === a.id) {
+            <p role="status" class="sent">Appeal sent — expect an answer within a few days.</p>
+          } @else if (appealing() === a.id) {
+            <form
+              class="appeal"
+              (submit)="submit(a.id); $event.preventDefault()"
+              aria-label="Appeal form"
+            >
+              <label for="appeal-{{ a.id }}">Why should this be reconsidered?</label>
+              <textarea
+                id="appeal-{{ a.id }}"
+                rows="3"
+                [ngModel]="reason()"
+                (ngModelChange)="reason.set($event)"
+                [ngModelOptions]="{ standalone: true }"
+              ></textarea>
+              @if (sendError()) {
+                <fc-auth-error [error]="sendError()" context="generic" />
+              }
+              <div class="appeal-actions">
+                <button type="button" class="fc-secondary" (click)="closeAppeal()">Cancel</button>
+                <button
+                  type="submit"
+                  class="fc-primary"
+                  [disabled]="sending() || reason().trim().length === 0"
+                >
+                  {{ sending() ? 'Sending…' : 'Send appeal' }}
+                </button>
+              </div>
+            </form>
+          } @else {
+            <button type="button" class="fc-secondary" (click)="openAppeal(a.id)">Appeal</button>
+          }
+        </li>
+      }
+    </ul>
+  }
+</div>

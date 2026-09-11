@@ -1,0 +1,132 @@
+<div class="profile-page">
+  @if (loading()) {
+    <p role="status">Loading profile…</p>
+  } @else if (notFound()) {
+    <section class="state" aria-labelledby="nf-h">
+      <h1 id="nf-h">Profile not found</h1>
+      <p>This profile doesn't exist or isn't available.</p>
+      <a routerLink="/">Back home</a>
+    </section>
+  } @else if (error()) {
+    <fc-auth-error [error]="error()" context="generic" />
+    <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
+  } @else if (profile(); as p) {
+    <header class="head">
+      <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+      <div class="who">
+        <h1>{{ p.displayName }}</h1>
+        <span class="username">@{{ p.username }}</span>
+        @if (p.bio) {
+          <p class="bio">{{ p.bio }}</p>
+        }
+        <p class="meta">
+          @if (p.location) {
+            <span>{{ p.location }}</span>
+          }
+          @if (p.websiteUrl) {
+            <a [href]="p.websiteUrl" target="_blank" rel="noopener">{{ p.websiteUrl }}</a>
+          }
+        </p>
+      </div>
+      <div class="side">
+        @if (isSelf()) {
+          <a class="fc-secondary link" routerLink="/settings/profile">Edit profile</a>
+        } @else {
+          <fc-follow-button [username]="p.username" />
+          <button type="button" class="fc-secondary" (click)="message()">Message</button>
+          <fc-block-mute-menu [username]="p.username" (blocked)="dropBlocked($event)" />
+        }
+      </div>
+    </header>
+
+    <div class="tabs" role="tablist" aria-label="Profile sections">
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tab() === 'posts'"
+        [class.active]="tab() === 'posts'"
+        (click)="switchTab('posts')"
+      >
+        Posts
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tab() === 'followers'"
+        [class.active]="tab() === 'followers'"
+        (click)="switchTab('followers')"
+      >
+        Followers
+      </button>
+      <button
+        type="button"
+        role="tab"
+        [attr.aria-selected]="tab() === 'following'"
+        [class.active]="tab() === 'following'"
+        (click)="switchTab('following')"
+      >
+        Following
+      </button>
+    </div>
+
+    @if (tab() === 'posts') {
+      @if (posts().length === 0) {
+        <p class="muted">{{ isSelf() ? 'You haven’t posted yet.' : 'No posts yet.' }}</p>
+      } @else {
+        <ol class="rows">
+          @for (post of posts(); track post.id) {
+            <li>
+              <fc-post-card [post]="post" [canDelete]="isSelf()" (deleted)="dropPost($event)" />
+            </li>
+          }
+        </ol>
+        @if (nextCursor() !== null && nextCursor() !== undefined) {
+          <button
+            type="button"
+            class="fc-secondary load-more"
+            [disabled]="loadingMore()"
+            (click)="loadMore()"
+          >
+            {{ loadingMore() ? 'Loading…' : 'Load more' }}
+          </button>
+        }
+      }
+    } @else if (tab() === 'followers') {
+      @if (listsLoading()) {
+        <p role="status">Loading…</p>
+      } @else if ((followers() ?? []).length === 0) {
+        <p class="muted">No followers yet.</p>
+      } @else {
+        <ul class="rows">
+          @for (u of followers(); track u.userId) {
+            <li>
+              <fc-user-card
+                [username]="u.username"
+                [displayName]="u.displayName"
+                (blocked)="dropListed($event)"
+              />
+            </li>
+          }
+        </ul>
+      }
+    } @else {
+      @if (listsLoading()) {
+        <p role="status">Loading…</p>
+      } @else if ((following() ?? []).length === 0) {
+        <p class="muted">Not following anyone yet.</p>
+      } @else {
+        <ul class="rows">
+          @for (u of following(); track u.userId) {
+            <li>
+              <fc-user-card
+                [username]="u.username"
+                [displayName]="u.displayName"
+                (blocked)="dropListed($event)"
+              />
+            </li>
+          }
+        </ul>
+      }
+    }
+  }
+</div>

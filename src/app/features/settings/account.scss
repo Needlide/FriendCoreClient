@@ -1,0 +1,79 @@
+.settings-page {
+  max-width: var(--fc-content-max);
+  margin: 0 auto;
+  padding: var(--fc-space-4);
+  display: grid;
+  gap: var(--fc-space-4);
+}
+
+h1,
+h2 {
+  margin: 0;
+}
+
+h1 {
+  font-size: var(--fc-text-xl);
+}
+
+h2 {
+  font-size: var(--fc-text-lg);
+}
+
+.card {
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius);
+  padding: var(--fc-space-6) var(--fc-space-4);
+  display: grid;
+  gap: var(--fc-space-2);
+  justify-items: start;
+}
+
+.name {
+  margin: 0;
+  font-size: var(--fc-text-lg);
+  font-weight: 700;
+}
+
+.username {
+  color: var(--fc-text-muted);
+  font-weight: 400;
+  font-size: var(--fc-text-base);
+}
+
+.ok {
+  margin: 0;
+  color: var(--fc-success);
+}
+
+.warn {
+  margin: 0;
+  color: var(--fc-warning);
+}
+
+.fc-secondary,
+.fc-danger {
+  font: inherit;
+  font-weight: 600;
+  min-height: 2.5rem;
+  padding: 0 var(--fc-space-4);
+  border-radius: var(--fc-radius-sm);
+  cursor: pointer;
+}
+
+.fc-secondary {
+  border: 1px solid var(--fc-border);
+  background: var(--fc-surface);
+  color: var(--fc-text);
+}
+
+.fc-danger {
+  border: 0;
+  background: var(--fc-danger);
+  color: #fff;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

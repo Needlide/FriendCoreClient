@@ -1,0 +1,84 @@
+<fc-auth-layout
+  title="Create your account"
+  lede="Pick a name, say hi, and find your people. No ads, no tracking, no algorithm."
+  [hasFooter]="true"
+>
+  <fc-auth-error [error]="error()" context="generic" />
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="fc-field">
+      <label for="register-username">Username</label>
+      <input
+        id="register-username"
+        type="text"
+        autocomplete="username"
+        formControlName="username"
+        [attr.aria-invalid]="form.controls.username.invalid && form.controls.username.touched"
+        aria-describedby="register-username-hint register-username-error"
+      />
+      <p class="hint" id="register-username-hint">
+        3–30 characters. Letters, numbers, underscores.
+      </p>
+      @if (form.controls.username.invalid && form.controls.username.touched) {
+        <p class="field-error" id="register-username-error">
+          Username must be 3–30 characters long.
+        </p>
+      }
+    </div>
+
+    <div class="fc-field">
+      <label for="register-display-name">Display name</label>
+      <input
+        id="register-display-name"
+        type="text"
+        autocomplete="nickname"
+        formControlName="displayName"
+        [attr.aria-invalid]="form.controls.displayName.invalid && form.controls.displayName.touched"
+        aria-describedby="register-display-name-error"
+      />
+      @if (form.controls.displayName.invalid && form.controls.displayName.touched) {
+        <p class="field-error" id="register-display-name-error">Display name is required.</p>
+      }
+    </div>
+
+    <div class="fc-field">
+      <label for="register-email">Email</label>
+      <input
+        id="register-email"
+        type="email"
+        autocomplete="email"
+        formControlName="email"
+        [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched"
+        aria-describedby="register-email-hint register-email-error"
+      />
+      <p class="hint" id="register-email-hint">Only used for sign-in and verification.</p>
+      @if (form.controls.email.invalid && form.controls.email.touched) {
+        <p class="field-error" id="register-email-error">Enter a valid email address.</p>
+      }
+    </div>
+
+    <div class="fc-field">
+      <label for="register-password">Password</label>
+      <input
+        id="register-password"
+        type="password"
+        autocomplete="new-password"
+        formControlName="password"
+        [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched"
+        aria-describedby="register-password-hint register-password-error"
+      />
+      <p class="hint" id="register-password-hint">At least 8 characters.</p>
+      @if (form.controls.password.invalid && form.controls.password.touched) {
+        <p class="field-error" id="register-password-error">
+          Password must be at least 8 characters.
+        </p>
+      }
+    </div>
+
+    <button class="fc-submit" type="submit" [disabled]="busy()">
+      {{ busy() ? 'Creating…' : 'Create account' }}
+    </button>
+  </form>
+
+  <span slot="switch">Already have an account? <a routerLink="/auth/login">Sign in</a></span>
+</fc-auth-layout>

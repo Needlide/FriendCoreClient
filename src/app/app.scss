@@ -1,0 +1,15 @@
+.skip-link {
+  position: absolute;
+  left: var(--fc-space-4);
+  top: -4rem;
+  z-index: 100;
+  background: var(--fc-surface);
+  color: var(--fc-text);
+  padding: var(--fc-space-2) var(--fc-space-4);
+  border-radius: var(--fc-radius-sm);
+  transition: top var(--fc-motion-fast) var(--fc-ease);
+}
+
+.skip-link:focus-visible {
+  top: var(--fc-space-2);
+}

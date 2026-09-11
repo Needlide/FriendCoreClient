@@ -1,0 +1,8 @@
+.auth-error {
+  margin: 0 0 var(--fc-space-4);
+  padding: var(--fc-space-3) var(--fc-space-4);
+  border-radius: var(--fc-radius-sm);
+  border: 1px solid var(--fc-danger);
+  color: var(--fc-danger);
+  font-size: var(--fc-text-sm);
+}

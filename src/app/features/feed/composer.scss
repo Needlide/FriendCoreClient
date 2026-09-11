@@ -1,0 +1,173 @@
+.composer {
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius);
+  padding: var(--fc-space-4);
+  display: grid;
+  gap: var(--fc-space-3);
+}
+
+h2 {
+  margin: 0;
+  font-size: var(--fc-text-lg);
+}
+
+.gate {
+  border: 1px solid var(--fc-warning);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-3) var(--fc-space-4);
+  display: grid;
+  gap: var(--fc-space-2);
+}
+
+.gate p {
+  margin: 0;
+}
+
+.gate button {
+  font: inherit;
+  font-weight: 600;
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-surface);
+  color: var(--fc-text);
+  min-height: 2.5rem;
+  cursor: pointer;
+  justify-self: start;
+}
+
+.field {
+  font-size: var(--fc-text-sm);
+  font-weight: 600;
+}
+
+textarea {
+  font: inherit;
+  color: var(--fc-text);
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-2) var(--fc-space-3);
+  resize: vertical;
+}
+
+.count {
+  margin: calc(-1 * var(--fc-space-2)) 0 0;
+  color: var(--fc-text-muted);
+  font-size: var(--fc-text-sm);
+  text-align: right;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--fc-space-2);
+}
+
+.inline {
+  font-size: var(--fc-text-sm);
+  color: var(--fc-text-muted);
+}
+
+select {
+  font: inherit;
+  color: var(--fc-text);
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-1) var(--fc-space-2);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fc-space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fc-space-1);
+  background: var(--fc-surface-2);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-1) var(--fc-space-2);
+  font-size: var(--fc-text-sm);
+  color: var(--fc-accent);
+}
+
+.chip button {
+  border: 0;
+  background: none;
+  color: var(--fc-text-muted);
+  cursor: pointer;
+  /* WCAG 2.5.8: pointer targets ≥ 24×24 (the × glyph alone is ~16px). */
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0;
+  font-size: var(--fc-text-base);
+  line-height: 1;
+}
+
+.attach {
+  border-top: 1px solid var(--fc-border);
+  padding-top: var(--fc-space-3);
+  display: grid;
+  gap: var(--fc-space-2);
+}
+
+.attach p {
+  margin: 0;
+}
+
+.file-label {
+  font-weight: 600;
+  font-size: var(--fc-text-sm);
+}
+
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fc-space-4);
+  font-size: var(--fc-text-sm);
+  color: var(--fc-text-muted);
+}
+
+.checks label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fc-space-1);
+}
+
+.failed {
+  color: var(--fc-danger);
+}
+
+.ready button,
+.failed button {
+  font: inherit;
+  border: 0;
+  background: none;
+  text-decoration: underline;
+  cursor: pointer;
+  color: inherit;
+}
+
+.fc-submit {
+  font: inherit;
+  width: 100%;
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-accent);
+  color: var(--fc-accent-contrast);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fc-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

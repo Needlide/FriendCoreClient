@@ -1,0 +1,49 @@
+<dialog #dialog class="report" aria-labelledby="report-h" (close)="chosen.set(null)">
+  <h2 id="report-h">{{ title() }}</h2>
+  <p class="sub">
+    Your report is reviewed by a person. Misuse of reporting may affect your account.
+  </p>
+
+  @if (sent()) {
+    <p role="status" class="sent">Thanks — we'll review this.</p>
+  } @else {
+    <fc-auth-error [error]="error()" context="generic" />
+
+    <div class="categories" role="radiogroup" aria-label="Report reason">
+      @for (c of categories; track c.value) {
+        <label>
+          <input
+            type="radio"
+            name="report-category"
+            [value]="c.value"
+            [checked]="chosen() === c.value"
+            (change)="chosen.set(c.value)"
+          />
+          {{ c.label }}
+        </label>
+      }
+    </div>
+
+    <label class="note-label" for="report-note">Details (optional)</label>
+    <textarea
+      id="report-note"
+      rows="2"
+      [ngModel]="note()"
+      (ngModelChange)="note.set($event)"
+      [ngModelOptions]="{ standalone: true }"
+      placeholder="Anything that helps a moderator understand…"
+    ></textarea>
+
+    <div class="actions">
+      <button type="button" class="fc-secondary" (click)="close()">Cancel</button>
+      <button
+        type="button"
+        class="fc-primary"
+        [disabled]="sending() || chosen() === null"
+        (click)="submit()"
+      >
+        {{ sending() ? 'Sending…' : 'Send report' }}
+      </button>
+    </div>
+  }
+</dialog>

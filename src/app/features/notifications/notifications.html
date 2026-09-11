@@ -1,0 +1,32 @@
+<div class="notifications-page">
+  <div class="head">
+    <h1>Notifications</h1>
+    @if (items().length > 0) {
+      <button type="button" class="fc-secondary" (click)="markAllRead()">Mark all read</button>
+    }
+  </div>
+
+  @if (loading()) {
+    <p role="status">Loading…</p>
+  } @else if (error()) {
+    <fc-auth-error [error]="error()" context="generic" />
+    <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
+  } @else if (items().length === 0) {
+    <section class="empty" aria-labelledby="empty-h">
+      <h2 id="empty-h">Nothing new</h2>
+      <p>When someone interacts with you, it'll show up here.</p>
+    </section>
+  } @else {
+    <ul class="rows">
+      @for (n of items(); track n.id) {
+        <li class="row" [class.unread]="!n.isRead">
+          <span class="avatar" aria-hidden="true">{{ n.actor.displayName[0]?.toUpperCase() }}</span>
+          <div class="body">
+            <p>{{ describe(n) }}</p>
+            <time [attr.datetime]="n.createdAt">{{ n.createdAt | relativeTime }}</time>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>

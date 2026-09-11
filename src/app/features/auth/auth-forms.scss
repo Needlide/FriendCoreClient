@@ -1,0 +1,57 @@
+// Shared form styling for the auth screens (login / register). Lives here — not in a
+// global stylesheet — so the future `fc-text-field` / `fc-button` kit components can
+// adopt these exact rules. Everything routes through `var(--fc-*)` tokens.
+
+.fc-field {
+  display: grid;
+  gap: var(--fc-space-1);
+  margin-bottom: var(--fc-space-4);
+}
+
+.fc-field label {
+  font-size: var(--fc-text-sm);
+  font-weight: 600;
+}
+
+.fc-field .hint {
+  margin: 0;
+  color: var(--fc-text-muted);
+  font-size: var(--fc-text-sm);
+}
+
+.fc-field input {
+  font: inherit;
+  color: var(--fc-text);
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-2) var(--fc-space-3);
+  width: 100%;
+}
+
+.fc-field input[aria-invalid='true'] {
+  border-color: var(--fc-danger);
+}
+
+.fc-field .field-error {
+  margin: 0;
+  color: var(--fc-danger);
+  font-size: var(--fc-text-sm);
+}
+
+.fc-submit {
+  font: inherit;
+  width: 100%;
+  min-height: 2.75rem; // ≥44px touch target (WCAG 2.5.8)
+  border: 0;
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-accent);
+  color: var(--fc-accent-contrast);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fc-submit:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

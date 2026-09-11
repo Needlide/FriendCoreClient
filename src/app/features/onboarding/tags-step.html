@@ -1,0 +1,83 @@
+<section aria-labelledby="tags-primary-h">
+  <h3 id="tags-primary-h">
+    Main interests
+    <span class="limit">{{ primary().length }}/{{ maxPrimary }}</span>
+  </h3>
+  <p class="hint">Up to {{ maxPrimary }}. These weigh most when finding your people.</p>
+
+  <fc-tag-input
+    label="Add a main interest"
+    placeholder="photography, synths…"
+    [disabled]="primary().length >= maxPrimary"
+    (tagAdd)="add($event, 'Primary')"
+  />
+
+  @if (primary().length > 0) {
+    <ul class="chips" aria-label="Chosen main interests">
+      @for (t of primary(); track t.name.toLowerCase()) {
+        <li class="chip">
+          <span>{{ t.name }}</span>
+          <button
+            type="button"
+            class="chip-toggle"
+            [attr.aria-pressed]="t.isPublic"
+            [title]="t.isPublic ? 'Shown on your profile' : 'Hidden — used for matching only'"
+            (click)="toggleVisibility(t.name, 'Primary')"
+          >
+            {{ t.isPublic ? 'Public' : 'Hidden' }}
+          </button>
+          <button
+            type="button"
+            class="chip-remove"
+            [attr.aria-label]="'Remove ' + t.name"
+            (click)="remove(t.name, 'Primary')"
+          >
+            ×
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</section>
+
+<section aria-labelledby="tags-secondary-h">
+  <h3 id="tags-secondary-h">
+    Also into
+    <span class="limit">{{ secondary().length }}/{{ maxSecondary }}</span>
+  </h3>
+  <p class="hint">Up to {{ maxSecondary }}. Lighter weight, same matching.</p>
+
+  <fc-tag-input
+    label="Add another interest"
+    placeholder="baking, film cameras…"
+    [disabled]="secondary().length >= maxSecondary"
+    (tagAdd)="add($event, 'Secondary')"
+  />
+
+  @if (secondary().length > 0) {
+    <ul class="chips" aria-label="Chosen secondary interests">
+      @for (t of secondary(); track t.name.toLowerCase()) {
+        <li class="chip">
+          <span>{{ t.name }}</span>
+          <button
+            type="button"
+            class="chip-toggle"
+            [attr.aria-pressed]="t.isPublic"
+            [title]="t.isPublic ? 'Shown on your profile' : 'Hidden — used for matching only'"
+            (click)="toggleVisibility(t.name, 'Secondary')"
+          >
+            {{ t.isPublic ? 'Public' : 'Hidden' }}
+          </button>
+          <button
+            type="button"
+            class="chip-remove"
+            [attr.aria-label]="'Remove ' + t.name"
+            (click)="remove(t.name, 'Secondary')"
+          >
+            ×
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</section>

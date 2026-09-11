@@ -1,0 +1,63 @@
+.tag-input label {
+  display: block;
+  font-size: var(--fc-text-sm);
+  font-weight: 600;
+  margin-bottom: var(--fc-space-1);
+}
+
+.combo-wrap {
+  position: relative;
+}
+
+.combo-wrap input {
+  font: inherit;
+  color: var(--fc-text);
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-2) var(--fc-space-3);
+  width: 100%;
+}
+
+.combo-wrap input:disabled {
+  opacity: 0.55;
+}
+
+.suggestions {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  margin: var(--fc-space-1) 0 0;
+  padding: var(--fc-space-1);
+  list-style: none;
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  box-shadow: var(--fc-shadow);
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.suggestions li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--fc-space-2);
+  padding: var(--fc-space-2) var(--fc-space-3);
+  border-radius: var(--fc-radius-sm);
+  cursor: pointer;
+}
+
+.suggestions li.active {
+  background: var(--fc-surface-2);
+}
+
+.suggestions .count {
+  color: var(--fc-text-muted);
+  font-size: var(--fc-text-sm);
+  white-space: nowrap;
+}
+
+.suggestions .first-use {
+  font-style: italic;
+}

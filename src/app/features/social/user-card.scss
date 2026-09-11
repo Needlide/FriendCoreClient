@@ -1,0 +1,47 @@
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--fc-space-3);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-3) var(--fc-space-4);
+  background: var(--fc-surface);
+}
+
+.avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--fc-surface-2);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.who {
+  display: grid;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.username,
+.bio {
+  color: var(--fc-text-muted);
+  font-size: var(--fc-text-sm);
+}
+
+.bio {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.side {
+  display: flex;
+  align-items: center;
+  gap: var(--fc-space-2);
+  flex-shrink: 0;
+}

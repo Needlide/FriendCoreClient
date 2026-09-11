@@ -1,0 +1,60 @@
+<div class="messages-page">
+  <h1>Messages</h1>
+
+  @if (loading()) {
+    <p role="status">Loading…</p>
+  } @else if (error()) {
+    <fc-auth-error [error]="error()" context="generic" />
+    <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
+  } @else {
+    @if (conversations().length === 0) {
+      <section class="empty" aria-labelledby="empty-h">
+        <h2 id="empty-h">No messages yet</h2>
+        <p>Start a conversation from someone's profile — or message the team below.</p>
+      </section>
+    } @else {
+      <ul class="rows">
+        @for (c of conversations(); track c.id) {
+          <li>
+            <a class="row" [routerLink]="['/messages', c.id]">
+              <span class="avatar" aria-hidden="true">{{
+                c.otherParticipant.displayName[0]?.toUpperCase()
+              }}</span>
+              <span class="who">
+                <strong>{{ c.otherParticipant.displayName }}</strong>
+                <span class="username">@{{ c.otherParticipant.username }}</span>
+              </span>
+              <span class="meta">
+                <time [attr.datetime]="c.lastMessageAt">{{ c.lastMessageAt | relativeTime }}</time>
+                @if (c.unreadCount > 0) {
+                  <span class="unread" aria-label="{{ c.unreadCount }} unread">{{
+                    c.unreadCount
+                  }}</span>
+                }
+              </span>
+            </a>
+          </li>
+        }
+      </ul>
+    }
+
+    <section class="support" aria-labelledby="support-h">
+      <h2 id="support-h">Message the team</h2>
+      <p>Thanks, bug reports, quick questions — reviewed by a person, answered when we can.</p>
+      @if (supportError()) {
+        <fc-auth-error [error]="supportError()" context="generic" />
+      }
+      <div class="support-actions">
+        <button
+          type="button"
+          class="fc-secondary"
+          (click)="openSupport()"
+          [disabled]="openingSupport()"
+        >
+          {{ openingSupport() ? 'Opening…' : 'Open support chat' }}
+        </button>
+        <a routerLink="/help">How this works</a>
+      </div>
+    </section>
+  }
+</div>

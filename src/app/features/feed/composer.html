@@ -1,0 +1,111 @@
+<section class="composer" aria-labelledby="composer-h">
+  <h2 id="composer-h">New post</h2>
+
+  <fc-auth-error [error]="error()" context="generic" />
+
+  @if (needsVerification()) {
+    <div class="gate" role="alert">
+      <p>
+        <strong>Verify your email before posting.</strong> We sent you a link when you signed up.
+      </p>
+      <button type="button" (click)="resendVerification()" [disabled]="resending() || resent()">
+        {{
+          resent()
+            ? 'Email sent — check your inbox'
+            : resending()
+              ? 'Sending…'
+              : 'Resend verification email'
+        }}
+      </button>
+    </div>
+  }
+
+  <label class="field" for="composer-text">What's happening?</label>
+  <textarea
+    id="composer-text"
+    rows="3"
+    maxlength="{{ maxLength }}"
+    [formControl]="form.controls.content"
+    aria-describedby="composer-count"
+  ></textarea>
+  <p class="count" id="composer-count">{{ form.controls.content.value.length }}/{{ maxLength }}</p>
+
+  <div class="row">
+    <label class="inline" for="composer-sensitivity">Who can see sensitive content</label>
+    <select id="composer-sensitivity" [formControl]="form.controls.sensitivity">
+      <option value="General">General</option>
+      <option value="Sensitive">Sensitive</option>
+      <option value="Explicit">Explicit</option>
+    </select>
+  </div>
+
+  <fc-tag-input
+    label="Tags (up to 12)"
+    placeholder="add a tag…"
+    [disabled]="tags().length >= maxTags"
+    (tagAdd)="addTag($event)"
+  />
+  @if (tags().length > 0) {
+    <ul class="chips" aria-label="Post tags">
+      @for (t of tags(); track t.toLowerCase()) {
+        <li class="chip">
+          <span>#{{ t }}</span>
+          <button type="button" [attr.aria-label]="'Remove ' + t" (click)="removeTag(t)">×</button>
+        </li>
+      }
+    </ul>
+  }
+
+  <div class="attach">
+    @switch (attachment()?.kind) {
+      @case ('uploading') {
+        <p role="status">Uploading… {{ attachmentPercent() }}%</p>
+      }
+      @case ('processing') {
+        <p role="status">Processing image…</p>
+      }
+      @case ('ready') {
+        <p class="ready">
+          Image attached ✓ (<button type="button" (click)="removeAttachment()">remove</button>)
+        </p>
+      }
+      @case ('failed') {
+        <p role="alert" class="failed">
+          {{ attachmentMessage() }}
+          <button type="button" (click)="removeAttachment()">dismiss</button>
+        </p>
+      }
+      @default {
+        <label class="file-label" for="composer-file">Attach an image</label>
+        <input
+          id="composer-file"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          (change)="onFile($event)"
+        />
+        <div class="checks">
+          <label>
+            <input
+              type="checkbox"
+              [checked]="warnFlashing()"
+              (change)="warnFlashing.set($any($event.target).checked)"
+            />
+            Contains flashing lights
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              [checked]="warnMotion()"
+              (change)="warnMotion.set($any($event.target).checked)"
+            />
+            Contains intense motion
+          </label>
+        </div>
+      }
+    }
+  </div>
+
+  <button type="button" class="fc-submit" [disabled]="!canPublish()" (click)="publish()">
+    {{ publishing() ? 'Publishing…' : 'Post' }}
+  </button>
+</section>

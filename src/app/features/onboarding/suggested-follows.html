@@ -1,0 +1,29 @@
+@switch (state()) {
+  @case ('loading') {
+    <p role="status">Finding your people…</p>
+  }
+  @case ('failed') {
+    <p role="alert">Couldn't load suggestions. You can still continue — Discover is waiting.</p>
+    <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
+  }
+  @case ('ready') {
+    @if (people().length === 0) {
+      <p>No suggestions right now. You'll find more under Discover.</p>
+    } @else {
+      <ul class="people">
+        @for (p of people(); track p.id) {
+          <li class="person">
+            <div class="who">
+              <strong>{{ p.displayName }}</strong>
+              <span class="username">@{{ p.username }}</span>
+              @if (p.bio) {
+                <span class="bio">{{ p.bio }}</span>
+              }
+            </div>
+            <fc-follow-button [username]="p.username" />
+          </li>
+        }
+      </ul>
+    }
+  }
+}

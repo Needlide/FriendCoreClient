@@ -1,0 +1,62 @@
+<article class="post" [attr.aria-labelledby]="'post-' + post().id + '-author'">
+  <header class="head">
+    <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+    <div class="who">
+      <strong id="{{ 'post-' + post().id + '-author' }}">
+        <a [routerLink]="['/u', post().authorUsername]">{{ post().authorDisplayName }}</a>
+      </strong>
+      <span class="meta">
+        <span>@{{ post().authorUsername }}</span>
+        <span aria-hidden="true">·</span>
+        <time [attr.datetime]="post().createdAt">{{ post().createdAt | relativeTime }}</time>
+      </span>
+    </div>
+    @if (canDelete()) {
+      <button type="button" class="danger-ghost" (click)="delete()">Delete</button>
+    }
+  </header>
+
+  @if (post().content) {
+    <p class="content">{{ post().content }}</p>
+  }
+
+  @if (post().tags.length > 0) {
+    <ul class="tags" aria-label="Post tags">
+      @for (t of post().tags; track t.slug) {
+        <li>#{{ t.name }}</li>
+      }
+    </ul>
+  }
+
+  @if (post().media.length > 0) {
+    <div class="media">
+      @for (m of post().media; track m.id) {
+        <fc-media-viewer [media]="m" />
+      }
+    </div>
+  }
+
+  <footer class="actions">
+    <button
+      type="button"
+      class="like"
+      [attr.aria-pressed]="isLiked()"
+      [attr.aria-label]="(isLiked() ? 'Unlike' : 'Like') + ' this post'"
+      (click)="toggleLike()"
+    >
+      {{ isLiked() ? '♥' : '♡' }} {{ likeCount() }}
+    </button>
+    <span class="comments" aria-label="{{ post().commentCount }} comments">
+      💬 {{ post().commentCount }}
+    </span>
+    <button
+      type="button"
+      class="report-link"
+      [attr.aria-label]="'Report this post'"
+      (click)="openReport(reportDialog)"
+    >
+      Report
+    </button>
+  </footer>
+  <fc-report-dialog #reportDialog [target]="reportTarget()" />
+</article>

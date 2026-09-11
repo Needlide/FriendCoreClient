@@ -1,0 +1,75 @@
+.settings-page {
+  max-width: var(--fc-content-max);
+  margin: 0 auto;
+  padding: var(--fc-space-4);
+  display: grid;
+  gap: var(--fc-space-4);
+}
+
+h1 {
+  margin: 0;
+  font-size: var(--fc-text-xl);
+}
+
+.toggles {
+  display: grid;
+  gap: var(--fc-space-3);
+}
+
+.toggles label {
+  display: flex;
+  gap: var(--fc-space-3);
+  align-items: flex-start;
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-3) var(--fc-space-4);
+  cursor: pointer;
+}
+
+.toggles input[type='checkbox'] {
+  margin-top: 0.125rem;
+}
+
+.toggles span {
+  font-size: var(--fc-text-sm);
+  color: var(--fc-text-muted);
+}
+
+.toggles strong {
+  color: var(--fc-text);
+  font-size: var(--fc-text-base);
+}
+
+.select-row {
+  align-items: center;
+}
+
+.select-row select {
+  font: inherit;
+  color: var(--fc-text);
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-2);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.fc-primary {
+  font: inherit;
+  font-weight: 600;
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-accent);
+  color: var(--fc-accent-contrast);
+  cursor: pointer;
+  justify-self: start;
+  padding: 0 var(--fc-space-6);
+}
+
+.fc-primary:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

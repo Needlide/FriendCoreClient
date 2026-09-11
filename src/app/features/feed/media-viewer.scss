@@ -1,0 +1,36 @@
+img {
+  display: block;
+  width: 100%;
+  border-radius: var(--fc-radius-sm);
+}
+
+.placeholder {
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-surface-2);
+  padding: var(--fc-space-6);
+  text-align: center;
+}
+
+.placeholder .title {
+  margin: 0 0 var(--fc-space-1);
+  font-weight: 600;
+}
+
+.placeholder .body {
+  margin: 0 0 var(--fc-space-4);
+  color: var(--fc-text-muted);
+  font-size: var(--fc-text-sm);
+}
+
+.placeholder button {
+  font: inherit;
+  font-weight: 600;
+  min-height: 2.5rem;
+  padding: 0 var(--fc-space-4);
+  border: 0;
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-accent);
+  color: var(--fc-accent-contrast);
+  cursor: pointer;
+}

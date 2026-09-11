@@ -1,0 +1,38 @@
+<div class="onboarding-page">
+  <section class="onboarding-card" aria-labelledby="onboarding-title">
+    <p class="eyebrow">Step {{ step() }} of 2</p>
+    @if (step() === 1) {
+      <h1 id="onboarding-title">What are you into?</h1>
+      <p class="lede">
+        Tags match you with people who care about the same things — not with an algorithm deciding
+        what you see.
+      </p>
+
+      <fc-auth-error [error]="error()" context="generic" />
+      <fc-tags-step #tagsRef />
+
+      <div class="actions">
+        <button
+          type="button"
+          class="fc-submit"
+          [disabled]="saving() || !tagsRef.hasAny()"
+          (click)="continueFromTags()"
+        >
+          {{ saving() ? 'Saving…' : 'Continue' }}
+        </button>
+        @if (!tagsRef.hasAny()) {
+          <p class="hint">Pick at least one interest — it's how we find your people.</p>
+        }
+      </div>
+    } @else {
+      <h1 id="onboarding-title">People you may like</h1>
+      <p class="lede">Follow a few to fill your home feed — or skip and explore later.</p>
+
+      <fc-suggested-follows />
+
+      <div class="actions">
+        <button type="button" class="fc-submit" (click)="finish()">Enter FriendCore</button>
+      </div>
+    }
+  </section>
+</div>

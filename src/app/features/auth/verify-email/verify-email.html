@@ -1,0 +1,19 @@
+<fc-auth-layout title="Email verification" [hasFooter]="true">
+  @switch (state()) {
+    @case ('verifying') {
+      <p role="status">Verifying…</p>
+    }
+    @case ('done') {
+      <p role="status">Verified — welcome! Taking you in…</p>
+    }
+    @case ('failed') {
+      <fc-auth-error [error]="error()" context="generic" />
+      <p>This link is invalid or has expired. Request a fresh one from your account page.</p>
+    }
+    @case ('no-token') {
+      <p>No verification token was provided. Open the link from your email again.</p>
+    }
+  }
+
+  <span slot="switch"><a routerLink="/auth/login">Back to sign in</a></span>
+</fc-auth-layout>

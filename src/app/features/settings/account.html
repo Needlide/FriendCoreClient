@@ -1,0 +1,37 @@
+<div class="settings-page">
+  <h1>Account</h1>
+
+  @if (auth.session(); as s) {
+    <section class="card" aria-label="Session">
+      <p class="name">
+        {{ s.displayName }} <span class="username">@{{ s.username }}</span>
+      </p>
+      @if (s.isEmailVerified) {
+        <p class="ok" role="status">Email verified.</p>
+      } @else {
+        <p class="warn" role="alert">Email not verified — posting is disabled until you verify.</p>
+        <button
+          type="button"
+          class="fc-secondary"
+          (click)="resend()"
+          [disabled]="resending() || resent()"
+        >
+          {{
+            resent()
+              ? 'Email sent — check your inbox'
+              : resending()
+                ? 'Sending…'
+                : 'Resend verification email'
+          }}
+        </button>
+      }
+    </section>
+  }
+
+  <section class="card" aria-label="Sign out">
+    <h2>Sign out</h2>
+    <button type="button" class="fc-danger" [disabled]="busy()" (click)="logout()">
+      {{ busy() ? 'Signing out…' : 'Log out' }}
+    </button>
+  </section>
+</div>

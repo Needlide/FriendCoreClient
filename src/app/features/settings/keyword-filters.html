@@ -1,0 +1,44 @@
+<div class="settings-page">
+  <h1>Keyword filters</h1>
+  <p class="lede">Posts containing these words won't appear in your feed.</p>
+
+  @if (loading()) {
+    <p role="status">Loading…</p>
+  } @else {
+    <fc-auth-error [error]="error()" context="generic" />
+
+    <form class="add" (submit)="add(); $event.preventDefault()" aria-label="Add a keyword">
+      <label class="fc-sr-only" for="kf-input">New keyword</label>
+      <input
+        id="kf-input"
+        type="text"
+        placeholder="word or phrase…"
+        [ngModel]="draft()"
+        (ngModelChange)="draft.set($event)"
+        [ngModelOptions]="{ standalone: true }"
+        [disabled]="saving()"
+      />
+      <button type="submit" [disabled]="saving() || draft().trim().length === 0">Add</button>
+    </form>
+
+    @if (keywords().length === 0) {
+      <p class="muted">No filters yet.</p>
+    } @else {
+      <ul class="chips">
+        @for (k of keywords(); track k) {
+          <li class="chip">
+            <span>{{ k }}</span>
+            <button
+              type="button"
+              [attr.aria-label]="'Remove filter ' + k"
+              [disabled]="saving()"
+              (click)="remove(k)"
+            >
+              ×
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  }
+</div>

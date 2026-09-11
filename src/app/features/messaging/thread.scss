@@ -1,0 +1,123 @@
+.thread-page {
+  max-width: var(--fc-content-max);
+  margin: 0 auto;
+  padding: var(--fc-space-4);
+  display: grid;
+  gap: var(--fc-space-3);
+  align-content: start;
+  min-height: calc(100dvh - 4rem);
+}
+
+.back {
+  font: inherit;
+  border: 0;
+  background: none;
+  color: var(--fc-text-muted);
+  cursor: pointer;
+  justify-self: start;
+  padding: var(--fc-space-1) 0;
+}
+
+.messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--fc-space-2);
+  align-content: start;
+}
+
+.bubble {
+  max-width: 75%;
+  justify-self: start;
+  background: var(--fc-surface-2);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-2) var(--fc-space-3);
+}
+
+.bubble.mine {
+  justify-self: end;
+  background: var(--fc-accent);
+  color: var(--fc-accent-contrast);
+}
+
+.bubble p {
+  margin: 0;
+  overflow-wrap: break-word;
+  white-space: pre-line;
+}
+
+.empty {
+  color: var(--fc-text-muted);
+  text-align: center;
+}
+
+.older {
+  justify-self: center;
+}
+
+.send-error {
+  margin: 0;
+  color: var(--fc-danger);
+  font-size: var(--fc-text-sm);
+}
+
+.composer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: var(--fc-space-2);
+  background: var(--fc-bg);
+  padding: var(--fc-space-2) 0;
+}
+
+.composer textarea {
+  font: inherit;
+  flex: 1;
+  color: var(--fc-text);
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-2) var(--fc-space-3);
+  resize: none;
+}
+
+.fc-primary {
+  font: inherit;
+  font-weight: 600;
+  min-height: 2.75rem;
+  padding: 0 var(--fc-space-6);
+  border: 0;
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-accent);
+  color: var(--fc-accent-contrast);
+  cursor: pointer;
+  align-self: end;
+}
+
+.fc-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fc-secondary {
+  font: inherit;
+  font-weight: 600;
+  min-height: 2.5rem;
+  padding: 0 var(--fc-space-4);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-surface);
+  color: var(--fc-text);
+  cursor: pointer;
+  justify-self: start;
+}
+
+.fc-secondary:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.state {
+  text-align: center;
+}

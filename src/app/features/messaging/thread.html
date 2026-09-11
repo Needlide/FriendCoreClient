@@ -1,0 +1,62 @@
+<div class="thread-page">
+  <h1 class="fc-sr-only">Conversation</h1>
+  <button type="button" class="back" (click)="goBack()" aria-label="Back to messages">
+    ← Messages
+  </button>
+
+  @if (loading()) {
+    <p role="status">Loading…</p>
+  } @else if (notFound()) {
+    <section class="state" aria-labelledby="nf-h">
+      <h1 id="nf-h">Conversation not found</h1>
+      <p>It may have been removed, or you may no longer have access to it.</p>
+      <button type="button" class="fc-secondary" (click)="goBack()">Back to messages</button>
+    </section>
+  } @else if (error()) {
+    <fc-auth-error [error]="error()" context="generic" />
+    <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
+  } @else {
+    @if (!exhausted) {
+      <button
+        type="button"
+        class="fc-secondary older"
+        [disabled]="loadingOlder()"
+        (click)="loadOlder()"
+      >
+        {{ loadingOlder() ? 'Loading…' : 'Load older' }}
+      </button>
+    }
+
+    <ul class="messages" role="log" aria-live="polite" aria-label="Messages">
+      @for (m of messages(); track m.id) {
+        <li class="bubble" [class.mine]="isMine(m)">
+          <p>{{ m.content }}</p>
+        </li>
+      } @empty {
+        <li class="empty">No messages yet — say hi.</li>
+      }
+    </ul>
+
+    @if (sendError()) {
+      <p class="send-error" role="alert">Couldn't send. Your text is still here — try again.</p>
+    }
+    <form class="composer" (submit)="send(); $event.preventDefault()" aria-label="Send a message">
+      <label class="fc-sr-only" for="thread-draft">Message</label>
+      <textarea
+        id="thread-draft"
+        rows="2"
+        [value]="draft()"
+        (input)="onDraft($event)"
+        (keydown.enter)="onEnter($event)"
+        placeholder="Write a message…"
+      ></textarea>
+      <button
+        type="submit"
+        class="fc-primary"
+        [disabled]="sending() || draft().trim().length === 0"
+      >
+        {{ sending() ? 'Sending…' : 'Send' }}
+      </button>
+    </form>
+  }
+</div>

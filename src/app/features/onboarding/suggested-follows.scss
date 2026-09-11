@@ -1,0 +1,65 @@
+.people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--fc-space-3);
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--fc-space-4);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-3) var(--fc-space-4);
+}
+
+.who {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.username,
+.bio {
+  color: var(--fc-text-muted);
+  font-size: var(--fc-text-sm);
+}
+
+.bio {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.fc-primary,
+.fc-secondary {
+  font: inherit;
+  font-weight: 600;
+  min-height: 2.5rem;
+  padding: 0 var(--fc-space-4);
+  border-radius: var(--fc-radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fc-primary {
+  border: 0;
+  background: var(--fc-accent);
+  color: var(--fc-accent-contrast);
+}
+
+.fc-secondary {
+  border: 1px solid var(--fc-border);
+  background: var(--fc-surface);
+  color: var(--fc-text);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

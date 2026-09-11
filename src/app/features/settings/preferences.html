@@ -1,0 +1,58 @@
+<div class="settings-page">
+  <h1>Preferences & accessibility</h1>
+
+  @if (loading()) {
+    <p role="status">Loading…</p>
+  } @else {
+    <fc-auth-error [error]="error()" context="generic" />
+    @if (saved()) {
+      <p role="status">Saved.</p>
+    }
+
+    <div class="toggles" role="group" aria-label="Accessibility toggles">
+      <label>
+        <input type="checkbox" [(ngModel)]="hideFlashing" />
+        <span
+          ><strong>Hide flashing media</strong><br />Show a warning before loading media that may
+          contain flashing lights or intense motion.</span
+        >
+      </label>
+      <label>
+        <input type="checkbox" [(ngModel)]="reduceMotion" />
+        <span
+          ><strong>Reduce motion</strong><br />Minimize animations and transitions across the
+          app.</span
+        >
+      </label>
+      <label>
+        <input type="checkbox" [(ngModel)]="disableAutoplay" />
+        <span
+          ><strong>Disable autoplay</strong><br />Don't play GIFs or videos until you press
+          play.</span
+        >
+      </label>
+      <label>
+        <input type="checkbox" [(ngModel)]="reduceNoise" />
+        <span
+          ><strong>Reduce visual noise</strong><br />Use a flatter look with fewer shadows and
+          visual effects.</span
+        >
+      </label>
+      <label class="select-row">
+        <span
+          ><strong>Content preference</strong><br />Control whether sensitive or explicit content
+          appears in your feed and discovery.</span
+        >
+        <select [(ngModel)]="contentPref" aria-label="Content preference">
+          <option value="General">General</option>
+          <option value="Sensitive">Sensitive and below</option>
+          <option value="Explicit">Everything, including explicit</option>
+        </select>
+      </label>
+    </div>
+
+    <button type="button" class="fc-primary" [disabled]="saving()" (click)="save()">
+      {{ saving() ? 'Saving…' : 'Save changes' }}
+    </button>
+  }
+</div>
