@@ -46,7 +46,8 @@ describe('TagInput', () => {
     const { fixture, el } = type('syn');
     vi.advanceTimersByTime(250);
     const req = expectApi(http, '/tags/autocomplete');
-    expect(req.request.params.get('q')).toBe('syn');
+    // Server binds [FromQuery] string query — `q` silently yields zero results.
+    expect(req.request.params.get('query')).toBe('syn');
     req.flush(response);
     fixture.detectChanges();
 
@@ -55,10 +56,56 @@ describe('TagInput', () => {
     expect(el.textContent).toContain("you're the first");
   });
 
+  it('shows the first-use row when nothing matches (the no-suggestion shape)', () => {
+    const { fixture, el } = type('dreampop');
+    vi.advanceTimersByTime(250);
+    expectApi(http, '/tags/autocomplete').flush({
+      query: 'dreampop',
+      suggestions: [],
+      hasExactMatch: false,
+    });
+    fixture.detectChanges();
+    expect(el.textContent).toContain("you're the first");
+  });
+
   it('sends nothing for queries shorter than 2 characters', () => {
     type('s');
     vi.advanceTimersByTime(1000);
     http.expectNone((req) => req.url.endsWith('/tags/autocomplete'));
+  });
+
+  it('splits comma-separated free text into individual tags on Enter', () => {
+    const { fixture, el } = type('synths, dreampop,  shoegaze ');
+    const emitted: string[] = [];
+    fixture.componentInstance.tagAdd.subscribe((name) => emitted.push(name));
+    el.querySelector('input')!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
+    );
+    // Commas never survive server normalization (dropped), so submitting them whole
+    // would mangle distinct tags into one slug — split before emitting.
+    expect(emitted).toEqual(['synths', 'dreampop', 'shoegaze']);
+    expect((el.querySelector('input') as HTMLInputElement).value).toBe('');
+    http.expectNone((req) => req.url.endsWith('/tags/autocomplete'));
+  });
+
+  it('marks the keyboard-active option with ⏎ (aria-hidden)', () => {
+    const { fixture, el } = type('syn');
+    vi.advanceTimersByTime(250);
+    expectApi(http, '/tags/autocomplete').flush({
+      query: 'syn',
+      suggestions: [{ id: '1', name: 'synths', slug: 'synths', totalCount: 12 }],
+      hasExactMatch: false,
+    });
+    fixture.detectChanges();
+
+    expect(el.querySelector('.kbd')).toBeNull();
+    el.querySelector('input')!.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }),
+    );
+    fixture.detectChanges();
+    const mark = el.querySelector('.kbd');
+    expect(mark?.textContent).toContain('⏎');
+    expect(mark?.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('emits free text on Enter and clears the input', () => {

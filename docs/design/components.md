@@ -297,7 +297,7 @@ Critical: when `HideFlashingMedia && HasFlashingWarning`, placeholder must not l
 ### TagInput
 
 | **Angular** | `fc-tag-input` |
-| **Behaviour** | Debounced autocomplete 200–300ms → `GET /api/v1/tags/autocomplete?q=` |
+| **Behaviour** | Debounced autocomplete 200–300ms → `GET /api/v1/tags/autocomplete?query=` |
 | **States** | typing, suggestions open, tag added, limit reached, "first to use this tag" |
 
 | A11y | Requirement |

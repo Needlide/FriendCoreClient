@@ -6,6 +6,8 @@ export const AuthEndpoints = {
   refresh: '/auth/refresh',
   logout: '/auth/logout',
   resendVerification: '/auth/resend-verification',
+  forgotPassword: '/auth/forgot-password',
+  resetPassword: '/auth/reset-password',
 } as const;
 
 /**

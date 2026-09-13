@@ -19,6 +19,7 @@ export class Account {
   private readonly realtime = inject(RealtimeService);
   private readonly router = inject(Router);
 
+  protected readonly resendEmail = signal('');
   protected readonly resending = signal(false);
   protected readonly resent = signal(false);
   protected readonly busy = signal(false);
@@ -35,9 +36,10 @@ export class Account {
   }
 
   protected resend(): void {
-    if (this.resending()) return;
+    const email = this.resendEmail().trim();
+    if (this.resending() || !email) return;
     this.resending.set(true);
-    this.auth.resendVerification().subscribe({
+    this.auth.resendVerification(email).subscribe({
       next: () => {
         this.resending.set(false);
         this.resent.set(true);

@@ -36,6 +36,23 @@ h2 {
   justify-self: start;
 }
 
+.gate-row {
+  display: flex;
+  gap: var(--fc-space-2);
+  flex-wrap: wrap;
+}
+
+.gate-row input {
+  font: inherit;
+  flex: 1;
+  min-width: 12rem;
+  color: var(--fc-text);
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-2) var(--fc-space-3);
+}
+
 .field {
   font-size: var(--fc-text-sm);
   font-weight: 600;

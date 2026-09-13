@@ -1,6 +1,7 @@
 import { HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
+import { AuthService } from '../../core/auth/auth.service';
 import { Composer } from './composer';
 import { configureAuthTestBed, expectApi } from '../auth/test-utils';
 
@@ -22,10 +23,22 @@ describe('Composer', () => {
     tags: [],
   };
 
+  const verifiedSession = {
+    accessToken: 'token',
+    expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+    userId: 'me',
+    username: 'alice',
+    displayName: 'Alice',
+    isEmailVerified: true,
+  };
+
   beforeEach(async () => {
     vi.useFakeTimers();
     await configureAuthTestBed([Composer]);
     http = TestBed.inject(HttpTestingController);
+    // Most tests act as a verified user; the gate tests below sign in unverified.
+    TestBed.inject(AuthService).login({ username: 'alice', password: 'password123' }).subscribe();
+    expectApi(http, '/auth/login').flush(verifiedSession);
   });
 
   afterEach(() => {
@@ -77,7 +90,7 @@ describe('Composer', () => {
     expect(el.textContent).toContain('Verify your email before posting.');
   });
 
-  it('resends the verification email from the gate', () => {
+  it('resends verification to a typed-in email (none is stored)', () => {
     const { fixture, el } = create();
     writeText(el, 'hello');
     fixture.detectChanges();
@@ -88,8 +101,14 @@ describe('Composer', () => {
     );
     fixture.detectChanges();
 
+    const emailInput = el.querySelector('#composer-resend-email') as HTMLInputElement;
+    emailInput.value = 'alice@example.com';
+    emailInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
     el.querySelector<HTMLButtonElement>('.gate button')!.click();
-    expectApi(http, '/auth/resend-verification').flush(null);
+    const req = expectApi(http, '/auth/resend-verification');
+    expect(req.request.body).toEqual({ email: 'alice@example.com' });
+    req.flush(null);
     fixture.detectChanges();
     expect(el.textContent).toContain('check your inbox');
   });
@@ -110,6 +129,60 @@ describe('Composer', () => {
     // Upload request is in flight — publish must stay disabled even with text.
     expect(el.querySelector<HTMLButtonElement>('.fc-submit')!.disabled).toBe(true);
     expectApi(http, '/media'); // let it hang: the point is publish stays gated
+  });
+
+  it('shows the verify notice upfront and blocks publishing while unverified', () => {
+    TestBed.inject(AuthService).clearSession();
+    const { fixture, el } = create();
+    writeText(el, 'my draft');
+    fixture.detectChanges();
+
+    expect(el.textContent).toContain('Verify your email to post.');
+    expect(el.querySelector<HTMLButtonElement>('.fc-submit')!.disabled).toBe(true);
+    // The draft survives — the gate never wipes typed work.
+    expect((el.querySelector('textarea') as HTMLTextAreaElement).value).toBe('my draft');
+  });
+
+  it('recheck flips the gate after verifying elsewhere, draft intact', () => {
+    TestBed.inject(AuthService).clearSession();
+    const { fixture, el } = create();
+    writeText(el, 'my draft');
+    fixture.detectChanges();
+
+    const check = Array.from(el.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('check again'),
+    ) as HTMLButtonElement;
+    check.click();
+    expectApi(http, '/auth/refresh').flush(verifiedSession);
+    fixture.detectChanges();
+
+    expect(el.textContent).not.toContain('Verify your email to post.');
+    expect(el.querySelector<HTMLButtonElement>('.fc-submit')!.disabled).toBe(false);
+    expect((el.querySelector('textarea') as HTMLTextAreaElement).value).toBe('my draft');
+  });
+
+  it('recheck ignores hammering: one request per 5s cooldown', () => {
+    TestBed.inject(AuthService).clearSession();
+    const { fixture, el } = create();
+    fixture.detectChanges();
+
+    const check = () =>
+      Array.from(el.querySelectorAll('button')).find((b) =>
+        b.textContent?.includes('check again'),
+      ) as HTMLButtonElement;
+    check().click();
+    expectApi(http, '/auth/refresh').flush({ ...verifiedSession, isEmailVerified: false });
+    fixture.detectChanges();
+
+    // Still unverified — and the button is cooling down, so a second click sends nothing.
+    expect(el.textContent).toContain('Still unverified');
+    check().click();
+    http.expectNone((req) => req.url.endsWith('/auth/refresh'));
+
+    vi.advanceTimersByTime(5000);
+    fixture.detectChanges();
+    check().click();
+    expectApi(http, '/auth/refresh').flush(verifiedSession);
   });
 
   it('polls the status endpoint until Ready, then attaches the id', () => {

@@ -32,8 +32,20 @@ export interface RegisterRequest {
   password: string;
 }
 
-/** POST /api/v1/auth/login */
+/** POST /api/v1/auth/login — username is the handle; email is never the login. */
 export interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
+}
+
+/** POST /api/v1/auth/forgot-password — blind 204 whether anything matches or not. */
+export interface ForgotPasswordRequest {
+  username: string;
+  email: string;
+}
+
+/** POST /api/v1/auth/reset-password */
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
 }

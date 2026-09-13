@@ -59,9 +59,7 @@ describe('Profile', () => {
     });
     http = TestBed.inject(HttpTestingController);
     // Session is set only through the service — sign in for real, then create.
-    TestBed.inject(AuthService)
-      .login({ email: 'alice@example.com', password: 'password123' })
-      .subscribe();
+    TestBed.inject(AuthService).login({ username: 'alice', password: 'password123' }).subscribe();
     expectApi(http, '/auth/login').flush({ ...me, username: sessionUsername });
     const fixture = TestBed.createComponent(Profile);
     fixture.detectChanges();

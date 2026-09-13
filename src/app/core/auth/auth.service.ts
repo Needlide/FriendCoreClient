@@ -4,7 +4,14 @@ import { catchError } from 'rxjs/operators';
 import { ApiClient } from '../api/api-client';
 import { AuthEndpoints } from '../config/endpoints';
 import { skipAuth } from '../http/http-context';
-import { AuthResponse, LoginRequest, RegisterRequest, Session } from '../models/auth.models';
+import {
+  AuthResponse,
+  ForgotPasswordRequest,
+  LoginRequest,
+  RegisterRequest,
+  ResetPasswordRequest,
+  Session,
+} from '../models/auth.models';
 
 /** Refresh proactively this long before the token's stated expiry (server ClockSkew = 1 min). */
 const TOKEN_SKEW_MS = 60_000;
@@ -69,9 +76,22 @@ export class AuthService {
       .pipe(tap((session) => this._session.set(session)));
   }
 
-  /** Requests a fresh verification email (auth required; gets bearer + refresh-retry). */
-  resendVerification(): Observable<void> {
-    return this.api.post<void>(AuthEndpoints.resendVerification);
+  /**
+   * Requests a fresh verification email. The server stores no address, so the email
+   * travels in the request and is hash-matched before anything is sent — a mismatch
+   * is a blind success. Auth required (prevents anonymous probing).
+   */
+  resendVerification(email: string): Observable<void> {
+    return this.api.post<void>(AuthEndpoints.resendVerification, { email });
+  }
+
+  /** Blind 204 by design — reveals nothing about whether anything matched. */
+  forgotPassword(request: ForgotPasswordRequest): Observable<void> {
+    return this.api.post<void>(AuthEndpoints.forgotPassword, request, { context: skipAuth() });
+  }
+
+  resetPassword(request: ResetPasswordRequest): Observable<void> {
+    return this.api.post<void>(AuthEndpoints.resetPassword, request, { context: skipAuth() });
   }
 
   /**

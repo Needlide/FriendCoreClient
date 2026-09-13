@@ -21,6 +21,35 @@ dev CORS origin, and the `SameSite=Strict` refresh cookie flows across ports
 (same site). Keep local dev on plain HTTP: the cookie's `Secure` flag follows
 `Request.IsHttps`, so local HTTPS would silently drop it.
 
+## Testing from another device on your LAN (e.g. a phone)
+
+The dev servers bind localhost only. To expose them on your home network, with
+`PC_IP` = your machine's LAN address (`ip -4 addr show | grep inet`):
+
+1. **API accepts the phone's origin and listens on all interfaces.** The phone
+   arrives as `http://<PC_IP>:3000`, which is neither the default CORS origin nor
+   reachable on a localhost-only socket:
+   ```bash
+   # in FriendCore/ — env vars only, nothing to revert in files
+   Cors__AllowedOrigins__0=http://<PC_IP>:3000 \
+   ASPNETCORE_URLS=http://0.0.0.0:5024 \
+   dotnet run --project src/FriendCore.API --launch-profile http
+   ```
+2. **Point the SPA at the LAN API.** Temporarily set `apiBaseUrl` in
+   `src/environments/environment.development.ts` to `http://<PC_IP>:5024`
+   (revert afterwards), then:
+   ```bash
+   npx ng serve --host 0.0.0.0 --port 3000
+   ```
+3. **Images need a reachable MinIO URL.** `Storage:PublicBaseUrl` in the API's
+   `appsettings.Development.json` must be `http://<PC_IP>:9000/friendcore-media`
+   (revert afterwards) — `localhost:9000` would resolve to the *phone itself*.
+4. **Firewall.** Allow 3000/5024/9000 inbound (e.g. `sudo ufw allow 3000,5024,9000/tcp`).
+5. Open `http://<PC_IP>:3000` on the phone. Cookies still flow: same IP with
+   different ports counts as same-site, so the refresh cookie works.
+
+Revert the three temporary edits when done — they must never be committed.
+
 ## Build
 
 ```bash

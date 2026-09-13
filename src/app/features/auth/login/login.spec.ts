@@ -37,9 +37,11 @@ describe('Login', () => {
     const fixture = TestBed.createComponent(Login);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
-    const [emailInput, passwordInput] = Array.from(el.querySelectorAll<HTMLInputElement>('input'));
-    emailInput.value = 'alice@example.com';
-    emailInput.dispatchEvent(new Event('input'));
+    const [usernameInput, passwordInput] = Array.from(
+      el.querySelectorAll<HTMLInputElement>('input'),
+    );
+    usernameInput.value = 'alice';
+    usernameInput.dispatchEvent(new Event('input'));
     passwordInput.value = 'password123';
     passwordInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -47,11 +49,13 @@ describe('Login', () => {
     return { fixture, el };
   }
 
-  it('shows "Invalid email or password." on 401', () => {
+  it('shows "Invalid username or password." on 401', () => {
     const { fixture, el } = fillAndSubmit();
     expectApi(http, '/api/v1/auth/login').flush(null, { status: 401, statusText: 'x' });
     fixture.detectChanges();
-    expect(el.querySelector('[role="alert"]')?.textContent).toContain('Invalid email or password.');
+    expect(el.querySelector('[role="alert"]')?.textContent).toContain(
+      'Invalid username or password.',
+    );
   });
 
   it('shows the unavailable-account message on 403', () => {
@@ -61,6 +65,31 @@ describe('Login', () => {
     expect(el.querySelector('[role="alert"]')?.textContent).toContain(
       "This account isn't available.",
     );
+  });
+
+  it('posts the username (never an email) as the login handle', () => {
+    fillAndSubmit();
+    const req = expectApi(http, '/api/v1/auth/login');
+    expect(req.request.body).toEqual({ username: 'alice', password: 'password123' });
+    req.flush({
+      accessToken: 'token',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+      userId: '01J0000000000000000000000',
+      username: 'alice',
+      displayName: 'Alice',
+      isEmailVerified: true,
+    });
+  });
+
+  it('renders no title attribute on the layout host (no phantom tooltips)', () => {
+    const fixture = TestBed.createComponent(Login);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    // Regression: a static title="…" on a component tag is ALSO rendered as a DOM
+    // attribute on the host, and browsers show ancestor titles as hover tooltips
+    // over every child — the heading input is therefore called `heading`.
+    expect(el.querySelector('fc-auth-layout')!.hasAttribute('title')).toBe(false);
+    expect(el.querySelector('h1')?.textContent).toContain('Welcome back');
   });
 
   it('navigates home on success', () => {
@@ -74,7 +103,7 @@ describe('Login', () => {
   it('keeps typed values when the server rejects the attempt', () => {
     const { el } = fillAndSubmit();
     expectApi(http, '/api/v1/auth/login').flush(null, { status: 401, statusText: 'x' });
-    const [emailInput] = Array.from(el.querySelectorAll<HTMLInputElement>('input'));
-    expect(emailInput.value).toBe('alice@example.com');
+    const [usernameInput] = Array.from(el.querySelectorAll<HTMLInputElement>('input'));
+    expect(usernameInput.value).toBe('alice');
   });
 });

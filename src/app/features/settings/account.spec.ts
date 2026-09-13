@@ -32,9 +32,7 @@ describe('Account', () => {
     TestBed.overrideProvider(RealtimeService, { useValue: realtime });
     realtime.disconnect.mockClear();
     http = TestBed.inject(HttpTestingController);
-    TestBed.inject(AuthService)
-      .login({ email: 'alice@example.com', password: 'password123' })
-      .subscribe();
+    TestBed.inject(AuthService).login({ username: 'alice', password: 'password123' }).subscribe();
     expectApi(http, '/auth/login').flush(me);
   });
 
@@ -46,14 +44,20 @@ describe('Account', () => {
     return { fixture, el: fixture.nativeElement as HTMLElement };
   }
 
-  it('explains the posting block and resends verification', () => {
+  it('explains the posting block and resends to a typed-in email', () => {
     const { fixture, el } = create();
     expect(el.textContent).toContain('posting is disabled');
+    const emailInput = el.querySelector('#account-resend-email') as HTMLInputElement;
+    emailInput.value = 'alice@example.com';
+    emailInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
     const resend = Array.from(el.querySelectorAll('button')).find((b) =>
       b.textContent?.includes('Resend'),
     ) as HTMLButtonElement;
     resend.click();
-    expectApi(http, '/auth/resend-verification').flush(null);
+    const req = expectApi(http, '/auth/resend-verification');
+    expect(req.request.body).toEqual({ email: 'alice@example.com' });
+    req.flush(null);
     fixture.detectChanges();
     expect(el.textContent).toContain('check your inbox');
   });

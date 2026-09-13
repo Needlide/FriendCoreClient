@@ -4,7 +4,7 @@ import { ApiError } from '../../../core/models/api-error';
 /**
  * One calm error banner for auth forms. Implements the copy rules from
  * `docs/design/content-and-a11y.md §3` in a single place:
- *  - login + 401 → "Invalid email or password." (never hint which field failed)
+ *  - login + 401 → "Invalid username or password." (never hint which field failed)
  *  - 403 → "This account isn't available." (never banned/suspended)
  *  - 429 → "Too many requests…" with the Retry-After seconds when the server sent them
  *  - anything else → the API's `description` (prefer server text over invented copy)
@@ -27,7 +27,7 @@ export class AuthError {
   context = input<'login' | 'generic'>('generic');
 
   protected message(err: ApiError): string {
-    if (err.status === 401 && this.context() === 'login') return 'Invalid email or password.';
+    if (err.status === 401 && this.context() === 'login') return 'Invalid username or password.';
     if (err.status === 403) return "This account isn't available.";
     if (err.isRateLimited) {
       const wait = err.retryAfterSeconds;

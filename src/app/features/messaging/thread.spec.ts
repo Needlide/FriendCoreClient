@@ -56,7 +56,7 @@ describe('Thread', () => {
     });
     http = TestBed.inject(HttpTestingController);
     TestBed.inject(AuthService)
-      .login({ email: 'alice@example.com', password: 'password123' })
+      .login({ username: 'alice', password: 'password123' })
       .subscribe();
     expectApi(http, '/auth/login').flush(me);
   });

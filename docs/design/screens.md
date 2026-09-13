@@ -33,7 +33,7 @@ Components: [`components.md`](components.md) · Copy rules: [`content-and-a11y.m
 
 | State | Design requirement |
 |---|---|
-| ✅ Empty form | Email + password fields, submit, link to register |
+| ✅ Empty form | Username + password fields, submit, links to register and forgot-password |
 | ✅ Loading | Button spinner, fields disabled |
 | ✅ Error 401 | "Invalid email or password." (generic — anti-enumeration) |
 | ✅ Error 403 | "This account isn't available." (never say banned/suspended) |
@@ -55,6 +55,20 @@ Components: [`components.md`](components.md) · Copy rules: [`content-and-a11y.m
 | ✅ Error 409 | Username/email taken — show `description` from API |
 | ✅ Validation 400 | Field errors |
 
+### Forgot / reset password
+
+| | |
+|---|---|
+| **Routes** | `/auth/forgot-password`, `/auth/reset-password?token=...` |
+| **API** | `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password` |
+| **Guards** | `guestGuard` |
+
+| State | Design requirement |
+|---|---|
+| ✅ Forgot form | Username + email; blind success ("if it matches, an email is on its way") — never reveal whether anything matched |
+| ✅ Reset form | New password (≥8 chars); invalid/expired token → calm error, no retry loop |
+| ✅ Success | Confirmation + link back to sign in |
+
 ### Verify email
 
 | | |
@@ -73,7 +87,7 @@ Components: [`components.md`](components.md) · Copy rules: [`content-and-a11y.m
 | | |
 |---|---|
 | **Trigger** | `POST /api/v1/posts` → `400 User.EmailNotVerified` |
-| **API** | `POST /api/v1/auth/resend-verification` |
+| **API** | `POST /api/v1/auth/resend-verification` (takes the email — the server stores none) |
 
 | State | Design requirement |
 |---|---|
@@ -208,7 +222,8 @@ Components: [`components.md`](components.md) · Copy rules: [`content-and-a11y.m
 
 | | |
 |---|---|
-| **API** | `PUT /api/v1/users/me/tags` |
+| **Route** | `/settings/interests` (also the recovery path for skipped onboarding) |
+| **API** | `GET /users/me/tags`, `PUT /users/me/tags` |
 
 | State | Design requirement |
 |---|---|
@@ -392,6 +407,7 @@ table to track the remaining Figma + responsive work, not code completion.
 | Login | ☐ | ✅ | ✅ |
 | Register | ☐ | ✅ | ✅ |
 | Verify email | ☐ | ✅ | ✅ |
+| Forgot / reset password | ☐ | ✅ | ✅ |
 | Onboarding | ☐ | ✅ | ✅ |
 | Home feed | ☐ | ✅ | ✅ |
 | Post composer | ☐ | ✅ | ✅ |

@@ -1,16 +1,18 @@
 <fc-auth-layout
-  title="Create your account"
+  heading="Create your account"
   lede="Pick a name, say hi, and find your people. No ads, no tracking, no algorithm."
   [hasFooter]="true"
 >
   <fc-auth-error [error]="error()" context="generic" />
 
   <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
-    <div class="fc-field">
+    <p class="req-note">All fields are required.</p>
+    <div class="fc-field required">
       <label for="register-username">Username</label>
       <input
         id="register-username"
         type="text"
+        required
         autocomplete="username"
         formControlName="username"
         [attr.aria-invalid]="form.controls.username.invalid && form.controls.username.touched"
@@ -26,11 +28,12 @@
       }
     </div>
 
-    <div class="fc-field">
+    <div class="fc-field required">
       <label for="register-display-name">Display name</label>
       <input
         id="register-display-name"
         type="text"
+        required
         autocomplete="nickname"
         formControlName="displayName"
         [attr.aria-invalid]="form.controls.displayName.invalid && form.controls.displayName.touched"
@@ -41,11 +44,12 @@
       }
     </div>
 
-    <div class="fc-field">
+    <div class="fc-field required">
       <label for="register-email">Email</label>
       <input
         id="register-email"
         type="email"
+        required
         autocomplete="email"
         formControlName="email"
         [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched"
@@ -57,11 +61,12 @@
       }
     </div>
 
-    <div class="fc-field">
+    <div class="fc-field required">
       <label for="register-password">Password</label>
       <input
         id="register-password"
         type="password"
+        required
         autocomplete="new-password"
         formControlName="password"
         [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched"

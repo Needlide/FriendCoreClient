@@ -3,20 +3,63 @@
 
   <fc-auth-error [error]="error()" context="generic" />
 
+  @if (!verified()) {
+    <div class="gate persistent" role="note" aria-label="Email verification needed">
+      <p><strong>Verify your email to post.</strong> Everything else already works.</p>
+      <div class="gate-row">
+        <label class="fc-sr-only" for="composer-verify-email">Email you signed up with</label>
+        <input
+          id="composer-verify-email"
+          type="email"
+          autocomplete="email"
+          placeholder="you@example.com"
+          [value]="resendEmail()"
+          (input)="resendEmail.set($any($event.target).value)"
+          [disabled]="resending() || resent()"
+        />
+        <button
+          type="button"
+          (click)="resendVerification()"
+          [disabled]="resending() || resent() || resendEmail().trim().length === 0"
+        >
+          {{ resent() ? 'Email sent — check your inbox' : resending() ? 'Sending…' : 'Resend email' }}
+        </button>
+        <button type="button" (click)="recheckVerification()" [disabled]="checking() || cooling()">
+          {{ checking() ? 'Checking…' : 'I verified — check again' }}
+        </button>
+      </div>
+      @if (stillUnverified()) {
+        <p class="hint">Still unverified — open the newest link in your inbox, then check again.</p>
+      }
+    </div>
+  }
+
   @if (needsVerification()) {
     <div class="gate" role="alert">
       <p>
-        <strong>Verify your email before posting.</strong> We sent you a link when you signed up.
+        <strong>Verify your email before posting.</strong> Enter the address you signed up with:
       </p>
-      <button type="button" (click)="resendVerification()" [disabled]="resending() || resent()">
-        {{
-          resent()
-            ? 'Email sent — check your inbox'
-            : resending()
-              ? 'Sending…'
-              : 'Resend verification email'
-        }}
-      </button>
+      <div class="gate-row">
+        <label class="fc-sr-only" for="composer-resend-email">Email</label>
+        <input
+          id="composer-resend-email"
+          type="email"
+          autocomplete="email"
+          placeholder="you@example.com"
+          [value]="resendEmail()"
+          (input)="resendEmail.set($any($event.target).value)"
+          [disabled]="resending() || resent()"
+        />
+        <button
+          type="button"
+          (click)="resendVerification()"
+          [disabled]="resending() || resent() || resendEmail().trim().length === 0"
+        >
+          {{
+            resent() ? 'Email sent — check your inbox' : resending() ? 'Sending…' : 'Resend email'
+          }}
+        </button>
+      </div>
     </div>
   }
 

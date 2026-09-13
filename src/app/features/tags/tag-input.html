@@ -26,7 +26,9 @@
             (mousedown)="pickSuggestion(s)"
           >
             <span>{{ s.name }}</span>
-            @if (s.totalCount > 0) {
+            @if (i === activeIndex()) {
+              <span class="kbd" aria-hidden="true">⏎</span>
+            } @else if (s.totalCount > 0) {
               <span class="count"
                 >{{ s.totalCount }} {{ s.totalCount === 1 ? 'person' : 'people' }}</span
               >
@@ -43,9 +45,13 @@
             (mousedown)="pickFirstUse()"
           >
             Use “{{ currentText() }}” — you're the first
+            @if (activeIndex() === suggestions().length) {
+              <span class="kbd" aria-hidden="true">⏎</span>
+            }
           </li>
         }
       </ul>
     }
   </div>
+  <p class="hint">Press Enter or pick a suggestion to add it — typing alone doesn't.</p>
 </div>

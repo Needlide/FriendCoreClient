@@ -1,0 +1,17 @@
+<div class="settings-page">
+  <h1>Interests</h1>
+  <p class="lede">Tags match you with people in Discover. Saving replaces the whole list.</p>
+
+  @if (loading()) {
+    <p role="status">Loading…</p>
+  } @else {
+    <fc-auth-error [error]="error()" context="generic" />
+    @if (saved()) {
+      <p role="status">Interests saved.</p>
+    }
+    <fc-tags-step [initialTags]="serverTags()" />
+    <button type="button" class="fc-submit" [disabled]="saving()" (click)="save()">
+      {{ saving() ? 'Saving…' : 'Save interests' }}
+    </button>
+  }
+</div>

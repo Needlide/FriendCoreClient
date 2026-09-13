@@ -1,0 +1,36 @@
+.settings-page {
+  max-width: var(--fc-content-max);
+  margin: 0 auto;
+  padding: var(--fc-space-4);
+  display: grid;
+  gap: var(--fc-space-3);
+}
+
+h1 {
+  margin: 0;
+  font-size: var(--fc-text-xl);
+}
+
+.lede {
+  margin: 0;
+  color: var(--fc-text-muted);
+}
+
+.fc-submit {
+  font: inherit;
+  width: 100%;
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-accent);
+  color: var(--fc-accent-contrast);
+  font-weight: 600;
+  cursor: pointer;
+  justify-self: start;
+  padding: 0 var(--fc-space-6);
+}
+
+.fc-submit:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

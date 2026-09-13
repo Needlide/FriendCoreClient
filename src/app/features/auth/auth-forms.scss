@@ -13,6 +13,19 @@
   font-weight: 600;
 }
 
+/* Required marker: asterisk, never color alone (WCAG 1.4.1 — color must not be the
+   only carrier of meaning). Pair with a "All fields are required." note atop the form. */
+.fc-field.required > label::after {
+  content: ' *';
+  color: var(--fc-danger);
+}
+
+.req-note {
+  margin: 0 0 var(--fc-space-4);
+  color: var(--fc-text-muted);
+  font-size: var(--fc-text-sm);
+}
+
 .fc-field .hint {
   margin: 0;
   color: var(--fc-text-muted);

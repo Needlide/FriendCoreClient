@@ -51,6 +51,23 @@ h2 {
   color: var(--fc-warning);
 }
 
+.resend-row {
+  display: flex;
+  gap: var(--fc-space-2);
+  flex-wrap: wrap;
+}
+
+.resend-row input {
+  font: inherit;
+  flex: 1;
+  min-width: 12rem;
+  color: var(--fc-text);
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-2) var(--fc-space-3);
+}
+
 .fc-secondary,
 .fc-danger {
   font: inherit;

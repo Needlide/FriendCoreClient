@@ -7,6 +7,9 @@ import { ApiError, ApiErrorItem } from '../models/api-error';
  *  - 401 / 403: empty body by design (anti-enumeration) — we synthesize a code.
  *  - 429: a single PascalCase object `{ Code, Description }` + a Retry-After header (seconds).
  *  - status 0: the request never reached the server (network down / CORS / TLS).
+ *  - anything else (empty body, HTML error page, raw text): a friendly per-status
+ *    fallback. Raw transport text ("Http failure response for…") and raw bodies must
+ *    NEVER reach the UI — users can't act on them and they leak internals.
  */
 export function normalizeHttpError(err: HttpErrorResponse): ApiError {
   const status = err.status;
@@ -41,15 +44,16 @@ export function normalizeHttpError(err: HttpErrorResponse): ApiError {
   const items = readErrorArray(err.error);
   if (items.length > 0) return new ApiError(status, items);
 
-  return new ApiError(status, [
-    {
-      code: 'Unknown',
-      description:
-        typeof err.error === 'string' && err.error
-          ? err.error
-          : err.message || `Request failed (${status}).`,
-    },
-  ]);
+  return new ApiError(status, [{ code: 'Unknown', description: fallbackFor(status) }]);
+}
+
+/** Friendly copy per status for bodies we can't parse — never raw transport text. */
+function fallbackFor(status: number): string {
+  if (status === 404) return 'Not found.';
+  if (status === 400) return 'The request was invalid. Try again.';
+  if (status === 409) return 'This conflicts with the current state. Try again.';
+  if (status >= 500) return 'Something went wrong on our side. Try again.';
+  return `Request failed (${status}).`;
 }
 
 /** Reads a value by any of the given keys (handles camelCase vs PascalCase). */

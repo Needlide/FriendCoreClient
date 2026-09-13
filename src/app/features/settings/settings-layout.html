@@ -1,0 +1,47 @@
+<div class="settings-wrap">
+  <nav class="subnav" aria-label="Settings sections">
+    <a
+      routerLink="/settings/profile"
+      routerLinkActive="active"
+      #profileRla="routerLinkActive"
+      [attr.aria-current]="profileRla.isActive ? 'page' : null"
+      >Profile</a
+    >
+    <a
+      routerLink="/settings/interests"
+      routerLinkActive="active"
+      #interestsRla="routerLinkActive"
+      [attr.aria-current]="interestsRla.isActive ? 'page' : null"
+      >Interests</a
+    >
+    <a
+      routerLink="/settings/preferences"
+      routerLinkActive="active"
+      #prefsRla="routerLinkActive"
+      [attr.aria-current]="prefsRla.isActive ? 'page' : null"
+      >Preferences</a
+    >
+    <a
+      routerLink="/settings/filters"
+      routerLinkActive="active"
+      #filtersRla="routerLinkActive"
+      [attr.aria-current]="filtersRla.isActive ? 'page' : null"
+      >Filters</a
+    >
+    <a
+      routerLink="/settings/appeals"
+      routerLinkActive="active"
+      #appealsRla="routerLinkActive"
+      [attr.aria-current]="appealsRla.isActive ? 'page' : null"
+      >Appeals</a
+    >
+    <a
+      routerLink="/settings/account"
+      routerLinkActive="active"
+      #accountRla="routerLinkActive"
+      [attr.aria-current]="accountRla.isActive ? 'page' : null"
+      >Account</a
+    >
+  </nav>
+  <router-outlet />
+</div>

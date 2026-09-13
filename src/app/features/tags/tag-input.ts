@@ -127,11 +127,16 @@ export class TagInput {
   }
 
   protected pickFirstUse(): void {
-    const value = this.currentValue();
-    if (value.length >= 2) {
-      this.tagAdd.emit(value);
-      this.reset();
-    }
+    // Comma-separated pastes ("a, b, c") split into individual tags: the server drops
+    // commas during normalization, so submitting them whole would mangle distinct tags
+    // into one slug. Parts under 2 chars are dropped (server minimum).
+    const parts = this.currentValue()
+      .split(',')
+      .map((part) => part.trim())
+      .filter((part) => part.length >= 2);
+    if (parts.length === 0) return;
+    for (const part of parts) this.tagAdd.emit(part);
+    this.reset();
   }
 
   protected onKeydown(event: KeyboardEvent): void {

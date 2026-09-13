@@ -31,7 +31,8 @@ live at the server root.
 | `/messages` | auth | Conversation list | `GET /conversations` |
 | `/messages/:id` | auth | Thread | `GET /conversations/{id}/messages?cursor=`, `POST /conversations/{id}/messages`, `POST /conversations/{id}/read`, hubs `MessageReceived` |
 | `/notifications` | auth | Notifications | `GET /notifications`, `GET /notifications/unread-count`, `POST /notifications/read`, hub `NotificationReceived` |
-| `/settings/profile` | auth | Edit profile + tags | `PATCH /users/me/profile`, `PUT /users/me/tags`, `GET /tags/autocomplete` |
+| `/settings/profile` | auth | Edit profile | `PATCH /users/me/profile` |
+| `/settings/interests` | auth | Edit tags (onboarding recovery) | `GET /users/me/tags`, `PUT /users/me/tags` |
 | `/settings/preferences` | auth | Toggles (flashing/motion/autoplay/noise/content) | `PATCH /users/me/preferences` |
 | `/settings/filters` | auth | Keyword filters | `GET /users/me/keyword-filters`, `PATCH /users/me/keyword-filters` |
 | `/settings/appeals` | auth | My moderation history + appeal | `GET /users/me/moderation-actions`, `POST /appeals` |
@@ -50,10 +51,11 @@ Composer, report dialog, block-confirm modal, and the verify-email gate are
 
 | Screen | Endpoint | Contract the UI must honor |
 |---|---|---|
-| Login | `POST /auth/login` | 401 empty body = "invalid email or password" · 403 empty body = generic "this account isn't available" (never banned/suspended) · 400 = array of `{code, description}` for field errors |
+| Login | `POST /auth/login` | 401 empty body = "invalid username or password" · 403 empty body = generic "this account isn't available" (never banned/suspended) · 400 = array of `{code, description}` for field errors |
 | Register | `POST /auth/register` | 201 → `AuthResponse` (session starts immediately) → route to `/onboarding` · 409 array (`User.EmailAlreadyInUse` / `User.UsernameAlreadyInUse`) → show `description` |
 | Verify email | `POST /auth/verify-email` | Token from query param; success restores session |
-| Verify gate (banner/modal) | `POST /auth/resend-verification` (auth) | Trigger: `POST /posts` → 400 `User.EmailNotVerified` · resend 204 = toast · 409 = already verified, dismiss |
+| Forgot / reset | `POST /auth/forgot-password` (blind 204 — identical copy either way), `POST /auth/reset-password` (400 `User.InvalidResetToken` on replay/expiry) | Username + email in, neutral confirmation out; new password ≥8 chars |
+| Verify gate (banner/modal) | `POST /auth/resend-verification` (takes the email — the server stores none) | Trigger: `POST /posts` → 400 `User.EmailNotVerified` · resend 204 = toast · 409 = already verified, dismiss |
 | Session bootstrap | `POST /auth/refresh` (cookie, no body) | Silent on app load; **single-flight** (one in-flight promise — replaying a rotated cookie revokes the family = instant logout). Already owned by `core/http/auth.interceptor` + `core/auth/auth.service` |
 
 ### Onboarding (`/onboarding`, first login only)

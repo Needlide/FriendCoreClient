@@ -2,7 +2,11 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClient } from '../../core/api/api-client';
 import { TagsEndpoints, UsersEndpoints } from '../../core/config/endpoints';
-import { ProfileTagInput, TagAutocompleteResponse } from '../../core/models/tags.models';
+import {
+  ProfileTagInput,
+  ProfileTagsResponse,
+  TagAutocompleteResponse,
+} from '../../core/models/tags.models';
 
 /**
  * Tag operations: autocomplete suggestions and the profile tag list.
@@ -13,10 +17,14 @@ import { ProfileTagInput, TagAutocompleteResponse } from '../../core/models/tags
 export class TagsService {
   private readonly api = inject(ApiClient);
 
-  /** GET /tags/autocomplete?q= — caller debounces; empty queries never reach here. */
+  /**
+   * GET /tags/autocomplete?query= — caller debounces; empty queries never reach here.
+   * Param name matches the server binding ([FromQuery] string query) — a mismatch
+   * silently yields empty results, which is exactly how this once broke.
+   */
   autocomplete(query: string): Observable<TagAutocompleteResponse> {
     return this.api.get<TagAutocompleteResponse>(TagsEndpoints.autocomplete, {
-      params: { q: query },
+      params: { query },
     });
   }
 
@@ -27,5 +35,10 @@ export class TagsService {
    */
   updateProfileTags(tags: ProfileTagInput[]): Observable<void> {
     return this.api.put<void>(UsersEndpoints.profileTags, { tags });
+  }
+
+  /** GET /users/me/tags — current list with tiers and visibility, for editing. */
+  getProfileTags(): Observable<ProfileTagsResponse> {
+    return this.api.get<ProfileTagsResponse>(UsersEndpoints.profileTags);
   }
 }

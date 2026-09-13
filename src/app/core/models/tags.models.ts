@@ -40,6 +40,19 @@ export interface DiscoveryPeopleResponse {
   people: DiscoveryPerson[];
 }
 
+/** GET /users/me/tags — the reader the PUT response shape already had. */
+export interface ProfileTagItem {
+  tagId: string;
+  name: string;
+  slug: string;
+  tier: string; // "Primary" | "Secondary"
+  isPublic: boolean;
+}
+
+export interface ProfileTagsResponse {
+  tags: ProfileTagItem[];
+}
+
 /** Client-side tag limits (mirror the server's TagLimits). */
 export const MAX_PRIMARY_TAGS = 6;
 export const MAX_SECONDARY_TAGS = 20;

@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth/auth.guard';
 import { Shell } from './features/shell/shell';
+import { SettingsLayout } from './features/settings/settings-layout';
 
 /**
  * MVP route table (see docs/UI-Plan.md §1). Authenticated pages render INSIDE the
@@ -23,6 +24,18 @@ export const routes: Routes = [
     canActivate: [guestGuard],
     loadComponent: () =>
       import('./features/auth/verify-email/verify-email').then((m) => m.VerifyEmail),
+  },
+  {
+    path: 'auth/forgot-password',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/forgot-password/forgot-password').then((m) => m.ForgotPassword),
+  },
+  {
+    path: 'auth/reset-password',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/reset-password/reset-password').then((m) => m.ResetPassword),
   },
   {
     path: '',
@@ -60,31 +73,38 @@ export const routes: Routes = [
         loadComponent: () => import('./features/messaging/thread').then((m) => m.Thread),
       },
       {
-        path: 'settings/profile',
-        loadComponent: () =>
-          import('./features/profile/edit-profile').then((m) => m.EditProfile),
-      },
-      {
         path: 'settings',
-        loadComponent: () => import('./features/settings/settings').then((m) => m.Settings),
-      },
-      {
-        path: 'settings/preferences',
-        loadComponent: () =>
-          import('./features/settings/preferences').then((m) => m.Preferences),
-      },
-      {
-        path: 'settings/filters',
-        loadComponent: () =>
-          import('./features/settings/keyword-filters').then((m) => m.KeywordFilters),
-      },
-      {
-        path: 'settings/appeals',
-        loadComponent: () => import('./features/settings/appeals').then((m) => m.Appeals),
-      },
-      {
-        path: 'settings/account',
-        loadComponent: () => import('./features/settings/account').then((m) => m.Account),
+        component: SettingsLayout,
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'profile' },
+          {
+            path: 'profile',
+            loadComponent: () =>
+              import('./features/profile/edit-profile').then((m) => m.EditProfile),
+          },
+          {
+            path: 'interests',
+            loadComponent: () => import('./features/settings/interests').then((m) => m.Interests),
+          },
+          {
+            path: 'preferences',
+            loadComponent: () =>
+              import('./features/settings/preferences').then((m) => m.Preferences),
+          },
+          {
+            path: 'filters',
+            loadComponent: () =>
+              import('./features/settings/keyword-filters').then((m) => m.KeywordFilters),
+          },
+          {
+            path: 'appeals',
+            loadComponent: () => import('./features/settings/appeals').then((m) => m.Appeals),
+          },
+          {
+            path: 'account',
+            loadComponent: () => import('./features/settings/account').then((m) => m.Account),
+          },
+        ],
       },
       {
         path: 'help',

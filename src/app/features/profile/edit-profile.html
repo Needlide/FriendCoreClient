@@ -7,7 +7,7 @@
   } @else {
     <fc-auth-error [error]="error()" context="generic" />
     @if (saved()) {
-      <p role="status">Saved — taking you back…</p>
+      <p role="status">Saved. <a [routerLink]="['/u', username()]">View profile</a></p>
     }
 
     <form [formGroup]="form" (ngSubmit)="save()" novalidate>

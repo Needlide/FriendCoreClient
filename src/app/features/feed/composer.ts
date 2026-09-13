@@ -65,9 +65,19 @@ export class Composer {
   /** Creator self-declaration (API §7.4 three-layer safety, layer 1). */
   protected readonly warnFlashing = signal(false);
   protected readonly warnMotion = signal(false);
+  /**
+   * Reactive verification state (from the session, not a one-shot fetch).
+   * The notice renders BEFORE anything is typed — the old design only reacted to
+   * the 400 after publish, i.e. after the user had already spent the effort.
+   * Typing stays enabled (never destroy work); only publishing waits.
+   */
+  protected readonly verified = this.auth.isEmailVerified;
+  protected readonly checking = signal(false);
+  protected readonly stillUnverified = signal(false);
   protected readonly publishing = signal(false);
   protected readonly error = signal<ApiError | null>(null);
   protected readonly needsVerification = signal(false);
+  protected readonly resendEmail = signal('');
   protected readonly resending = signal(false);
   protected readonly resent = signal(false);
 
@@ -76,7 +86,9 @@ export class Composer {
     const busy = att !== null && att.kind !== 'ready' && att.kind !== 'failed';
     const hasContent = this.form.controls.content.value.trim().length > 0;
     const hasMedia = att !== null && att.kind === 'ready';
-    return !this.publishing() && !busy && (hasContent || hasMedia);
+    // Posting is the one verified-only action: gate here (with explanation above),
+    // not after the effort. The 400 branch in publish() stays as a race backup.
+    return !this.publishing() && !busy && this.verified() && (hasContent || hasMedia);
   }
 
   protected addTag(name: string): void {
@@ -220,10 +232,44 @@ export class Composer {
       });
   }
 
+  /** Re-fetch the session after verifying elsewhere (e.g. on the phone). */
+  protected recheckVerification(): void {
+    if (this.checking() || this.cooling()) return;
+    this.checking.set(true);
+    this.stillUnverified.set(false);
+    this.auth.refresh().subscribe({
+      next: () => {
+        this.checking.set(false);
+        // Session signal drives `verified()` — if still false, say so plainly.
+        if (!this.verified()) this.stillUnverified.set(true);
+        this.startCooldown();
+      },
+      error: () => {
+        this.checking.set(false);
+        this.startCooldown();
+      },
+    });
+  }
+
+  /**
+   * Post-attempt cooldown (5 s): refresh() is cheap but not free, and hammering it
+   * doubles as a (very polite) self-DoS on the auth path. The button disables for
+   * the window; the last result message persists so the state never looks dead.
+   */
+  protected readonly cooling = signal(false);
+
+  private startCooldown(): void {
+    this.cooling.set(true);
+    setTimeout(() => this.cooling.set(false), 5_000);
+  }
+
   protected resendVerification(): void {
-    if (this.resending()) return;
+    // The server stores no address, so resending needs the email typed in.
+    // A mismatch is a blind success — the banner confirms neutrally either way.
+    const email = this.resendEmail().trim();
+    if (this.resending() || !email) return;
     this.resending.set(true);
-    this.auth.resendVerification().subscribe({
+    this.auth.resendVerification(email).subscribe({
       next: () => {
         this.resending.set(false);
         this.resent.set(true);

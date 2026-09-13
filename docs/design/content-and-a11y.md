@@ -61,7 +61,7 @@ The API returns `{ code, description }` arrays for 400/404/409. **Prefer `descri
 
 | Status | Body | UI copy rule |
 |---|---|---|
-| **401** | Empty | Login: "Invalid email or password." · Elsewhere: "Sign in to continue." |
+| **401** | Empty | Login: "Invalid username or password." · Elsewhere: "Sign in to continue." |
 | **403** | Empty | "This account isn't available." — **never** say banned, suspended, or blocked |
 | **404** | Error array or empty | "Not found." — for profiles/posts, same copy whether missing or block (anti-enumeration) |
 | **409** | Error array | Show API `description` (e.g. username taken) |

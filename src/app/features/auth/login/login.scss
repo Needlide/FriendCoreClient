@@ -1,1 +1,7 @@
 @use '../auth-forms' as *;
+
+.forgot {
+  margin: var(--fc-space-3) 0 0;
+  font-size: var(--fc-text-sm);
+  text-align: center;
+}

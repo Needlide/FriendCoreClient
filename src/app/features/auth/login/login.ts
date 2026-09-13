@@ -10,11 +10,14 @@ import { AuthLayout } from '../ui/auth-layout';
  * Sign-in form. Thin by design: it collects credentials, delegates everything
  * transport-related to `AuthService.login` (bearer + session live there), and only
  * owns UI state — `busy` (double-submit guard) and `error` (mapped by `fc-auth-error`
- * per the copy rules: 401 here is always "Invalid email or password.").
+ * per the copy rules: 401 here is always "Invalid username or password.").
+ *
+ * Identity note: login is username + password. Email is not the handle anywhere —
+ * it exists only transiently inside verification and reset requests.
  *
  * Note on 401 handling: the request carries `skipAuth()`, so the auth interceptor
- * does NOT attempt a refresh-and-retry on failure — a login 401 is a genuine wrong
- * password, not an expired token. Retrying it as a refresh would be wrong.
+ * does NOT attempt a refresh-and-retry on failure — a login 401 is genuine wrong
+ * credentials, not an expired token. Retrying it as a refresh would be wrong.
  */
 @Component({
   selector: 'fc-login',
@@ -28,7 +31,7 @@ export class Login {
   private readonly fb = inject(FormBuilder);
 
   protected readonly form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    username: ['', Validators.required],
     password: ['', Validators.required],
   });
 

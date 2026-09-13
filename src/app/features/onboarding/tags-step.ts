@@ -1,4 +1,4 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, effect, input, signal } from '@angular/core';
 import { TagInput } from '../tags/tag-input';
 import {
   MAX_PRIMARY_TAGS,
@@ -28,6 +28,24 @@ export class TagsStep {
 
   private readonly selected = signal<ProfileTagInput[]>([]);
 
+  /**
+   * Prefill for editing (settings binds the server list here). Applied exactly once
+   * via an effect — no viewChild timing traps: inputs resolve before the view reads
+   * them, whatever order responses arrive in.
+   */
+  readonly initialTags = input<ProfileTagInput[] | null>(null);
+  private initialApplied = false;
+
+  constructor() {
+    effect(() => {
+      const initial = this.initialTags();
+      if (initial && !this.initialApplied) {
+        this.initialApplied = true;
+        this.selected.set(initial.map((t) => ({ ...t })));
+      }
+    });
+  }
+
   protected readonly primary = computed(() => this.selected().filter((t) => t.tier === 'Primary'));
   protected readonly secondary = computed(() =>
     this.selected().filter((t) => t.tier === 'Secondary'),
@@ -38,6 +56,16 @@ export class TagsStep {
   /** Snapshot for the parent to save. */
   tags(): ProfileTagInput[] {
     return this.selected();
+  }
+
+  /** Imperative prefill (kept for spec convenience — the input is the real path). */
+  setTags(tags: ProfileTagInput[]): void {
+    this.initialApplied = true;
+    this.selected.set(
+      tags
+        .map((t) => ({ name: t.name.trim(), tier: t.tier, isPublic: t.isPublic }))
+        .filter((t) => t.name.length > 0),
+    );
   }
 
   /** Template + spec entry points — public because templates can only call public members. */
