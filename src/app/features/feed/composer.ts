@@ -1,5 +1,7 @@
-import { Component, inject, output, signal } from '@angular/core';
+import { Component, DestroyRef, inject, output, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ApiError } from '../../core/models/api-error';
 import {
@@ -48,6 +50,15 @@ export class Composer {
   private readonly media = inject(MediaService);
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
+  private readonly destroyRef = inject(DestroyRef);
+
+  /**
+   * Cancel in-flight upload/poll chains when superseded (new file picked, attachment
+   * removed) or destroyed (navigated away mid-upload). A stale poll resolving late
+   * must never overwrite newer attachment state — e.g. a previous cycle's terminal
+   * result flashing over the current upload.
+   */
+  private readonly superseded = new Subject<void>();
 
   /** Fires with the created post so the feed can prepend it without refetching. */
   readonly postCreated = output<Post>();
@@ -74,6 +85,10 @@ export class Composer {
   protected readonly verified = this.auth.isEmailVerified;
   protected readonly checking = signal(false);
   protected readonly stillUnverified = signal(false);
+
+  constructor() {
+    this.destroyRef.onDestroy(() => this.superseded.complete());
+  }
   protected readonly publishing = signal(false);
   protected readonly error = signal<ApiError | null>(null);
   protected readonly needsVerification = signal(false);
@@ -129,23 +144,31 @@ export class Composer {
 
     const preview = URL.createObjectURL(file);
     this.attachment.set({ kind: 'uploading', percent: 0, preview });
+    this.superseded.next(); // a previous in-flight upload/poll must not land here
     const flags = {
       hasFlashingWarning: this.warnFlashing(),
       hasIntenseMotionWarning: this.warnMotion(),
     };
-    this.media.upload(file, flags).subscribe({
-      next: (event) => {
-        if (isProgress(event)) {
-          this.attachment.set({ kind: 'uploading', percent: event.percent, preview });
-        } else {
-          this.pollUntilReady(event, preview);
-        }
-      },
-      error: () => {
-        URL.revokeObjectURL(preview);
-        this.attachment.set({ kind: 'failed', preview: '', message: 'Upload failed. Try again.' });
-      },
-    });
+    this.media
+      .upload(file, flags)
+      .pipe(takeUntil(this.superseded), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (event) => {
+          if (isProgress(event)) {
+            this.attachment.set({ kind: 'uploading', percent: event.percent, preview });
+          } else {
+            this.pollUntilReady(event, preview);
+          }
+        },
+        error: () => {
+          URL.revokeObjectURL(preview);
+          this.attachment.set({
+            kind: 'failed',
+            preview: '',
+            message: 'Upload failed. Try again.',
+          });
+        },
+      });
   }
 
   private attachmentBusy(): boolean {
@@ -156,28 +179,31 @@ export class Composer {
   /** Upload finished (bytes are on the server) — now wait for variants. */
   private pollUntilReady(uploaded: MediaUploadResponse, preview: string): void {
     this.attachment.set({ kind: 'processing', preview });
-    this.media.waitUntilReady(uploaded.id).subscribe({
-      next: (status) => {
-        if (status.status === 'Ready') {
-          this.attachment.set({ kind: 'ready', mediaId: uploaded.id, preview });
-        } else {
+    this.media
+      .waitUntilReady(uploaded.id)
+      .pipe(takeUntil(this.superseded), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (status) => {
+          if (status.status === 'Ready') {
+            this.attachment.set({ kind: 'ready', mediaId: uploaded.id, preview });
+          } else {
+            URL.revokeObjectURL(preview);
+            this.attachment.set({
+              kind: 'failed',
+              preview: '',
+              message: 'The image could not be processed. Try another file.',
+            });
+          }
+        },
+        error: () => {
           URL.revokeObjectURL(preview);
           this.attachment.set({
             kind: 'failed',
             preview: '',
-            message: 'The image could not be processed. Try another file.',
+            message: 'Timed out waiting for the image. Try again.',
           });
-        }
-      },
-      error: () => {
-        URL.revokeObjectURL(preview);
-        this.attachment.set({
-          kind: 'failed',
-          preview: '',
-          message: 'Timed out waiting for the image. Try again.',
-        });
-      },
-    });
+        },
+      });
   }
   /** Template helpers — the @switch narrows `kind`, but bindings need plain values. */
   protected attachmentPercent(): number {
@@ -191,6 +217,7 @@ export class Composer {
   }
 
   protected removeAttachment(): void {
+    this.superseded.next(); // stop any polling for the discarded upload
     const att = this.attachment();
     if (att && 'preview' in att && att.preview) URL.revokeObjectURL(att.preview);
     if (att && att.kind === 'ready') {

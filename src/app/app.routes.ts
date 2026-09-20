@@ -73,6 +73,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/messaging/thread').then((m) => m.Thread),
       },
       {
+        path: 'notifications',
+        loadComponent: () =>
+          import('./features/notifications/notifications').then((m) => m.Notifications),
+      },
+      {
         path: 'settings',
         component: SettingsLayout,
         children: [

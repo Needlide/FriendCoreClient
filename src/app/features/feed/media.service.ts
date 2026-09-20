@@ -1,6 +1,6 @@
 import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map, takeWhile, throwError, timeout, timer } from 'rxjs';
+import { Observable, filter, map, take, timeout, timer } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { ApiClient } from '../../core/api/api-client';
 import { MediaEndpoints } from '../../core/config/endpoints';
@@ -58,14 +58,17 @@ export class MediaService {
   }
 
   /**
-   * Poll until the media leaves Processing. `takeWhile(predicate, true)` — the
-   * `true` means INCLUSIVE: it emits the final Ready/Failed too, then completes.
+   * Poll until the media leaves Processing. Only terminal states reach the subscriber:
+   * `takeWhile` was the wrong operator here — inclusive or not, it still DELIVERS every
+   * passing value, so each Processing poll fell into the caller's failure branch and
+   * flashed a false error before Ready arrived. `filter` + `take(1)` instead.
    * `timeout` guards a stuck worker (60 s): better a local error than a forever spinner.
    */
   waitUntilReady(id: string): Observable<MediaStatusResponse> {
     return timer(0, 1500).pipe(
       switchMap(() => this.status(id)),
-      takeWhile((res) => res.status === 'Processing', true),
+      filter((res) => res.status !== 'Processing'),
+      take(1),
       timeout(60_000),
     );
   }

@@ -19,10 +19,12 @@ describe('Onboarding', () => {
 
   afterEach(() => http.verify());
 
-  function create() {
+  function create(prefill: { tags: unknown[] } = { tags: [] }) {
     const fixture = TestBed.createComponent(Onboarding);
     fixture.detectChanges();
-    // SuggestedFollows (step 2, hidden) fires nothing; TagsStep fires nothing either.
+    // Prefill fires on init (step 2, hidden, fires nothing).
+    expectApi(http, '/users/me/tags').flush(prefill);
+    fixture.detectChanges();
     return { fixture, el: fixture.nativeElement as HTMLElement };
   }
 
@@ -36,6 +38,14 @@ describe('Onboarding', () => {
     const { el } = create();
     expect(continueButton(el).disabled).toBe(true);
     expect(el.textContent).toContain('Pick at least one interest');
+  });
+
+  it('prefills returning visitors instead of starting blank', () => {
+    const { el } = create({
+      tags: [{ tagId: 't1', name: 'synths', slug: 'synths', tier: 'Primary', isPublic: true }],
+    });
+    expect(el.textContent).toContain('synths');
+    expect(el.querySelector<HTMLButtonElement>('.actions .fc-submit')!.disabled).toBe(false);
   });
 
   it('saves the list on Continue and advances to suggested follows', () => {

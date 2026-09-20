@@ -2,6 +2,7 @@ import { Component, inject, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { TagsService } from '../tags/tags.service';
 import { ApiError } from '../../core/models/api-error';
+import { ProfileTagInput, ProfileTagTier } from '../../core/models/tags.models';
 import { AuthError } from '../auth/ui/auth-error';
 import { SuggestedFollows } from './suggested-follows';
 import { TagsStep } from './tags-step';
@@ -15,6 +16,9 @@ import { TagsStep } from './tags-step';
  * on leaving step 1 (PUT replaces the whole list), so typing never hits the network
  * until the user commits with Continue. Step 2 then reads fresh discovery results
  * computed from the just-saved tags.
+ *
+ * Revisits (e.g. via the empty-feed CTA) prefill from the server instead of
+ * starting blank — leaving and returning never loses or hides prior choices.
  */
 @Component({
   selector: 'fc-onboarding',
@@ -31,6 +35,22 @@ export class Onboarding {
   protected readonly step = signal<1 | 2>(1);
   protected readonly saving = signal(false);
   protected readonly error = signal<ApiError | null>(null);
+  protected readonly serverTags = signal<ProfileTagInput[] | null>(null);
+
+  constructor() {
+    this.tags.getProfileTags().subscribe({
+      next: (res) =>
+        this.serverTags.set(
+          res.tags.map((t) => ({
+            name: t.name,
+            tier: (t.tier === 'Primary' ? 'Primary' : 'Secondary') as ProfileTagTier,
+            isPublic: t.isPublic,
+          })),
+        ),
+      // Prefill is a courtesy — a failure just leaves a blank step, never an error.
+      error: () => undefined,
+    });
+  }
 
   protected continueFromTags(): void {
     const selection = this.tagsStep()?.tags() ?? [];

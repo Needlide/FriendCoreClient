@@ -9,7 +9,7 @@
       </p>
 
       <fc-auth-error [error]="error()" context="generic" />
-      <fc-tags-step #tagsRef />
+      <fc-tags-step #tagsRef [initialTags]="serverTags()" />
 
       <div class="actions">
         <button

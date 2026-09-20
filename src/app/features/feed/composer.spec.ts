@@ -200,6 +200,11 @@ describe('Composer', () => {
     // …then polling starts. timer(0, …) still needs a tick for its first emission…
     vi.advanceTimersByTime(0);
     expectApi(http, '/media/m1/status').flush({ id: 'm1', status: 'Processing' });
+    fixture.detectChanges();
+    // Intermediate Processing polls must NOT surface as failure — the terminal
+    // states (Ready/Failed) are the only ones the subscriber ever sees.
+    expect(el.querySelector('.failed')).toBeNull();
+    expect(el.textContent).toContain('Processing image');
     vi.advanceTimersByTime(1500);
     expectApi(http, '/media/m1/status').flush({ id: 'm1', status: 'Ready' });
     fixture.detectChanges();
