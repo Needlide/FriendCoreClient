@@ -1,7 +1,9 @@
 import { Component, OnDestroy, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { RelativeTimePipe } from '../feed/relative-time.pipe';
 import { ApiError } from '../../core/models/api-error';
-import { NotificationItem } from '../../core/models/notifications.models';
+import { NOTIFICATION_TYPES, NotificationItem } from '../../core/models/notifications.models';
 import { AuthError } from '../auth/ui/auth-error';
 import { NotificationsService } from './notifications.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
@@ -15,7 +17,7 @@ import { Subscription } from 'rxjs';
  */
 @Component({
   selector: 'fc-notifications',
-  imports: [RelativeTimePipe, AuthError],
+  imports: [FormsModule, RouterLink, RelativeTimePipe, AuthError],
   templateUrl: './notifications.html',
   styleUrl: './notifications.scss',
 })
@@ -28,6 +30,15 @@ export class Notifications implements OnDestroy {
   protected readonly items = signal<NotificationItem[]>([]);
   private subscription: Subscription;
 
+  /**
+   * Per-type mute state. Checked = notifies; unchecking saves immediately (whole-set
+   * PUT, same pattern as keyword filters). Muted types are never CREATED server-side,
+   * so unmuting reveals only future events — the list is never re-filtered locally.
+   */
+  protected readonly typeOptions = NOTIFICATION_TYPES;
+  protected readonly muted = signal<Set<string>>(new Set());
+  protected readonly typesSaving = signal(false);
+
   constructor() {
     this.subscription = this.realtime.notification$.subscribe(() => this.reload());
     this.subscription.add(
@@ -36,6 +47,10 @@ export class Notifications implements OnDestroy {
       }),
     );
     this.reload();
+    this.notifications.getMutedTypes().subscribe({
+      next: (res) => this.muted.set(new Set(res.mutedTypes)),
+      error: () => undefined, // toggles keep their defaults; the list is unaffected
+    });
   }
 
   ngOnDestroy(): void {
@@ -49,20 +64,47 @@ export class Notifications implements OnDestroy {
     });
   }
 
-  protected describe(n: NotificationItem): string {
-    const who = n.actor.displayName;
-    switch (n.type) {
+  protected isMuted(type: string): boolean {
+    return this.muted().has(type);
+  }
+
+  protected toggleType(type: string, notify: boolean): void {
+    if (this.typesSaving()) return;
+    const next = new Set(this.muted());
+    if (notify) next.delete(type);
+    else next.add(type);
+    this.typesSaving.set(true);
+    this.notifications.updateMutedTypes([...next]).subscribe({
+      next: (res) => {
+        // Adopt the server echo (unknown names dropped there), not our guess.
+        this.muted.set(new Set(res.mutedTypes));
+        this.typesSaving.set(false);
+      },
+      error: () => this.typesSaving.set(false),
+    });
+  }
+
+  /**
+   * The verb half of the row. The actor name renders separately as a profile link,
+   * so this returns only what follows it ("started following you", …).
+   */
+  protected actionText(type: string): string {
+    switch (type) {
       case 'NewFollower':
-        return `${who} started following you`;
+        return 'started following you';
       case 'NewLike':
-        return `${who} liked your post`;
+        return 'liked your post';
       case 'NewComment':
-        return `${who} commented on your post`;
+        return 'commented on your post';
       case 'NewMessage':
-        return `${who} sent you a message`;
+        return 'sent you a message';
       default:
-        return `${who} interacted with you`;
+        return 'interacted with you';
     }
+  }
+
+  protected describe(n: NotificationItem): string {
+    return `${n.actor.displayName} ${this.actionText(n.type)}`;
   }
 
   protected retry(): void {

@@ -1,6 +1,12 @@
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import {
+  NavigationEnd,
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
+} from '@angular/router';
+import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { PreferencesService } from '../../core/preferences/preferences.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
@@ -27,23 +33,32 @@ export class Shell implements OnInit, OnDestroy {
   protected readonly auth = inject(AuthService);
   private readonly realtime = inject(RealtimeService);
   private readonly prefs = inject(PreferencesService);
-  private readonly notifications = inject(NotificationsService);
+  protected readonly notifications = inject(NotificationsService);
   private readonly router = inject(Router);
 
-  protected readonly unread = signal(0);
   private subscription?: Subscription;
 
   ngOnInit(): void {
-    this.refreshUnread();
+    this.notifications.refreshUnread();
     // Accessibility prefs apply document-wide (data-* on <html>); load failure
     // keeps the safe defaults — the settings page surfaces the error instead.
     this.prefs.load().subscribe({ error: () => undefined });
     // Push is only a bump — every event (and every reconnect) reconciles via REST.
-    this.subscription = this.realtime.notification$.subscribe(() => this.refreshUnread());
+    this.subscription = this.realtime.notification$.subscribe(() =>
+      this.notifications.refreshUnread(),
+    );
     this.subscription.add(
       this.realtime.resync$.subscribe((hub) => {
-        if (hub === 'notifications') this.refreshUnread();
+        if (hub === 'notifications') this.notifications.refreshUnread();
       }),
+    );
+    // A missed push (background tab, reconnect gap) leaves a stale badge behind a
+    // navigation that otherwise changes nothing — one cheap GET per navigation ends
+    // that whole class of staleness.
+    this.subscription.add(
+      this.router.events
+        .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+        .subscribe(() => this.notifications.refreshUnread()),
     );
     void this.realtime.connect();
   }
@@ -63,13 +78,6 @@ export class Shell implements OnInit, OnDestroy {
         next: () => void this.router.navigate(['/auth/login']),
         error: () => void this.router.navigate(['/auth/login']),
       });
-    });
-  }
-
-  private refreshUnread(): void {
-    this.notifications.unreadCount().subscribe({
-      next: (res) => this.unread.set(res.count),
-      error: () => undefined, // bell keeps its last count; the page shows errors
     });
   }
 }

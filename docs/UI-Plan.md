@@ -30,7 +30,7 @@ live at the server root.
 | `/u/:username` | auth | Profile (self/other) + user posts | `GET /users/{username}`, `GET /users/{username}/posts`, `GET /users/{username}/followers|following`, follow/unfollow, block/unblock, mute/unmute, `POST /conversations`, `POST /users/{username}/report` |
 | `/messages` | auth | Conversation list | `GET /conversations` |
 | `/messages/:id` | auth | Thread | `GET /conversations/{id}/messages?cursor=`, `POST /conversations/{id}/messages`, `POST /conversations/{id}/read`, hubs `MessageReceived` |
-| `/notifications` | auth | Notifications | `GET /notifications`, `GET /notifications/unread-count`, `POST /notifications/read`, hub `NotificationReceived` |
+| `/notifications` | auth | List (actor names link to profiles), per-type mute toggles, mark-all-read | `GET /notifications`, `GET /notifications/unread-count`, `POST /notifications/read`, `GET/PATCH /users/me/notification-types`, hub `NotificationReceived` |
 | `/settings/profile` | auth | Edit profile | `PATCH /users/me/profile` |
 | `/settings/interests` | auth | Edit tags (onboarding recovery) | `GET /users/me/tags`, `PUT /users/me/tags` |
 | `/settings/preferences` | auth | Toggles (flashing/motion/autoplay/noise/content) | `PATCH /users/me/preferences` |
@@ -113,7 +113,10 @@ otherwise block is immediate, no modal. Blocking the admin account → 400
 
 Quiet bell (header, count only — no pulse). `GET /notifications/unread-count`
 for badge, `GET /notifications` for hydrated list (pushes are ID-only),
-`POST /notifications/read`. Push → bump badge → reconcile list.
+`POST /notifications/read`. Push → bump badge → reconcile list. Actor names link
+to profiles. "What notifies you" toggles mute whole types via
+`GET/PATCH /users/me/notification-types` — muted types are never created
+server-side, so the bell stays truthful with no client math.
 
 ### Settings
 

@@ -19,3 +19,16 @@ export interface NotificationListResponse {
 export interface UnreadCountResponse {
   count: number;
 }
+
+/** GET /users/me/notification-types — type names the user muted (empty = all notify). */
+export interface NotificationTypesResponse {
+  mutedTypes: string[];
+}
+
+/** The four notifiable types with user-facing labels. */
+export const NOTIFICATION_TYPES = [
+  { value: 'NewFollower', label: 'New followers' },
+  { value: 'NewLike', label: 'New likes' },
+  { value: 'NewComment', label: 'New comments' },
+  { value: 'NewMessage', label: 'New messages' },
+] as const;

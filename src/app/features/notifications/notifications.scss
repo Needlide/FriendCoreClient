@@ -17,6 +17,34 @@ h1 {
   font-size: var(--fc-text-xl);
 }
 
+.types {
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-3) var(--fc-space-4);
+  display: grid;
+  gap: var(--fc-space-2);
+}
+
+.types h2 {
+  margin: 0;
+  font-size: var(--fc-text-base);
+}
+
+.types .hint {
+  margin: 0;
+  color: var(--fc-text-muted);
+  font-size: var(--fc-text-sm);
+}
+
+.types label {
+  display: flex;
+  align-items: center;
+  gap: var(--fc-space-2);
+  font-size: var(--fc-text-sm);
+  cursor: pointer;
+}
+
 .rows {
   list-style: none;
   margin: 0;
@@ -52,6 +80,16 @@ h1 {
 
 .body p {
   margin: 0;
+}
+
+.body p a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.body p a:hover {
+  text-decoration: underline;
 }
 
 .body time {

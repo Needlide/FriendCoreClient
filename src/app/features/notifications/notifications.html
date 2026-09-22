@@ -6,6 +6,25 @@
     }
   </div>
 
+  <section class="types" aria-labelledby="types-h">
+    <h2 id="types-h">What notifies you</h2>
+    <p class="hint">
+      Uncheck what shouldn't distract you. Muted types are never created — unmuting only affects the
+      future.
+    </p>
+    @for (t of typeOptions; track t.value) {
+      <label>
+        <input
+          type="checkbox"
+          [checked]="!isMuted(t.value)"
+          [disabled]="typesSaving()"
+          (change)="toggleType(t.value, $any($event.target).checked)"
+        />
+        {{ t.label }}
+      </label>
+    }
+  </section>
+
   @if (loading()) {
     <p role="status">Loading…</p>
   } @else if (error()) {
@@ -22,7 +41,10 @@
         <li class="row" [class.unread]="!n.isRead">
           <span class="avatar" aria-hidden="true">{{ n.actor.displayName[0]?.toUpperCase() }}</span>
           <div class="body">
-            <p>{{ describe(n) }}</p>
+            <p>
+              <a [routerLink]="['/u', n.actor.username]">{{ n.actor.displayName }}</a>
+              {{ actionText(n.type) }}
+            </p>
             <time [attr.datetime]="n.createdAt">{{ n.createdAt | relativeTime }}</time>
           </div>
         </li>

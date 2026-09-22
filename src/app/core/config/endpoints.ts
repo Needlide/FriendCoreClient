@@ -30,6 +30,7 @@ export const UsersEndpoints = {
   updateProfile: '/users/me/profile',
   preferences: '/users/me/preferences',
   keywordFilters: '/users/me/keyword-filters',
+  notificationTypes: '/users/me/notification-types',
   profile: (username: string) => `/users/${username}`,
   userPosts: (username: string) => `/users/${username}/posts`,
   followers: (username: string) => `/users/${username}/followers`,
