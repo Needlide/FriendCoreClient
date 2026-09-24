@@ -114,4 +114,38 @@ describe('Notifications', () => {
     fixture.detectChanges();
     expect(el.textContent).toContain('Nothing new');
   });
+
+  it('snoozes for a duration and renders the active state with lift', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/notifications').flush({ notifications: [] });
+    fixture.detectChanges();
+
+    const twoHours = Array.from(el.querySelectorAll('button')).find((b) =>
+      b.textContent?.trim().startsWith('2 hours'),
+    ) as HTMLButtonElement;
+    twoHours.click();
+    const req = expectApi(http, '/users/me/snooze');
+    expect(req.request.method).toBe('POST');
+    const until = req.request.body['until'] as string;
+    // A ~2h ISO instant, not a magic string — the server validates the window.
+    const hoursOut = (Date.parse(until) - Date.now()) / 3_600_000;
+    expect(hoursOut).toBeGreaterThan(1.9);
+    expect(hoursOut).toBeLessThan(2.1);
+    req.flush({ snoozedUntil: until });
+    fixture.detectChanges();
+
+    expect(el.textContent).toContain('Silenced until');
+    expect(TestBed.inject(NotificationsService).snoozedUntil()).toBe(until);
+
+    const lift = Array.from(el.querySelectorAll('button')).find(
+      (b) => b.textContent?.trim() === 'Lift snooze',
+    ) as HTMLButtonElement;
+    lift.click();
+    const del = expectApi(http, '/users/me/snooze');
+    expect(del.request.method).toBe('DELETE');
+    del.flush(null);
+    fixture.detectChanges();
+    expect(el.textContent).toContain('2 hours');
+    expect(TestBed.inject(NotificationsService).snoozedUntil()).toBeNull();
+  });
 });

@@ -53,6 +53,7 @@ describe('Shell', () => {
     const { fixture, el } = create();
     expect(realtime.connect).toHaveBeenCalled();
     expectApi(http, '/notifications/unread-count').flush({ count: 3 });
+    expectApi(http, '/users/me/snooze').flush({ snoozedUntil: null });
     // Shell also loads accessibility prefs (safe defaults apply until they land).
     expectApi(http, '/users/me/preferences').flush({
       hideFlashingMedia: true,
@@ -69,6 +70,7 @@ describe('Shell', () => {
   it('disconnects realtime before logging out, then leaves for login', () => {
     const { fixture, el } = create();
     expectApi(http, '/notifications/unread-count').flush({ count: 0 });
+    expectApi(http, '/users/me/snooze').flush({ snoozedUntil: null });
     expectApi(http, '/users/me/preferences').flush({
       hideFlashingMedia: true,
       reduceMotion: false,

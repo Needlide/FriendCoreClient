@@ -4,6 +4,7 @@ import { ApiClient } from '../../core/api/api-client';
 import { NotificationsEndpoints, UsersEndpoints } from '../../core/config/endpoints';
 import {
   NotificationListResponse,
+  NotificationSnoozeResponse,
   NotificationTypesResponse,
   UnreadCountResponse,
 } from '../../core/models/notifications.models';
@@ -20,6 +21,12 @@ export class NotificationsService {
 
   /** Badge count. Single writer discipline: only refreshUnread() mutates it. */
   readonly unread = signal(0);
+
+  /**
+   * Silence-all instant (ISO string) or null when off. Same shared-state discipline
+   * as unread: the bell and the page read this, actions write through it.
+   */
+  readonly snoozedUntil = signal<string | null>(null);
 
   list(): Observable<NotificationListResponse> {
     return this.api.get<NotificationListResponse>(NotificationsEndpoints.list);
@@ -42,6 +49,27 @@ export class NotificationsService {
       // Clearing must move the badge immediately — not on the next push or reload.
       tap({ next: () => this.unread.set(0), error: () => undefined }),
     );
+  }
+
+  loadSnooze(): void {
+    this.api.get<NotificationSnoozeResponse>(UsersEndpoints.snooze).subscribe({
+      next: (res) => this.snoozedUntil.set(res.snoozedUntil),
+      error: () => undefined,
+    });
+  }
+
+  /** Snooze until an ISO instant; adopts the server echo as the new state. */
+  snoozeUntil(untilIso: string): Observable<NotificationSnoozeResponse> {
+    return this.api
+      .post<NotificationSnoozeResponse>(UsersEndpoints.snooze, { until: untilIso })
+      .pipe(tap((res) => this.snoozedUntil.set(res.snoozedUntil)));
+  }
+
+  /** Lift early — deterministically null afterwards, no refetch needed. */
+  liftSnooze(): Observable<void> {
+    return this.api
+      .delete<void>(UsersEndpoints.snooze)
+      .pipe(tap({ next: () => this.snoozedUntil.set(null), error: () => undefined }));
   }
 
   /** Muted type names (e.g. "NewFollower"). Whole-set replace on save. */

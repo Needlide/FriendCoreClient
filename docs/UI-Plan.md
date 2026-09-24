@@ -116,7 +116,9 @@ for badge, `GET /notifications` for hydrated list (pushes are ID-only),
 `POST /notifications/read`. Push → bump badge → reconcile list. Actor names link
 to profiles. "What notifies you" toggles mute whole types via
 `GET/PATCH /users/me/notification-types` — muted types are never created
-server-side, so the bell stays truthful with no client math.
+server-side, so the bell stays truthful with no client math. "Snooze everything"
+(`GET`, `POST`, `DELETE /users/me/snooze`) silences all types until an instant;
+the bell shows muted while active.
 
 ### Settings
 

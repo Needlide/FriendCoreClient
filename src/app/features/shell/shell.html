@@ -25,7 +25,10 @@
     >
   </nav>
   <div class="tools">
-    <fc-notification-bell [unread]="notifications.unread()" />
+    <fc-notification-bell
+      [unread]="notifications.unread()"
+      [silencedUntil]="notifications.snoozedUntil()"
+    />
     <details #menu class="avatar-menu">
       <summary [attr.aria-label]="'Account menu for ' + (myUsername() ?? 'you')">
         {{ (myUsername() ?? '?')[0]?.toUpperCase() }}

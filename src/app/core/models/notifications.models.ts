@@ -25,6 +25,14 @@ export interface NotificationTypesResponse {
   mutedTypes: string[];
 }
 
+/**
+ * GET /users/me/snooze (and POST /users/me/snooze) — silence-all instant, ISO string.
+ * Null means off. DELETE answers 204 (clearing is deterministic — always null after).
+ */
+export interface NotificationSnoozeResponse {
+  snoozedUntil: string | null;
+}
+
 /** The four notifiable types with user-facing labels. */
 export const NOTIFICATION_TYPES = [
   { value: 'NewFollower', label: 'New followers' },

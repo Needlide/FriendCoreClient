@@ -25,6 +25,52 @@
     }
   </section>
 
+  <section class="snooze" aria-labelledby="snooze-h">
+    <h2 id="snooze-h">Snooze everything</h2>
+    @if (snoozedUntil()) {
+      <p>Silenced until {{ snoozedLabel() }}. Nothing is created while snoozed.</p>
+      <button type="button" class="fc-secondary" [disabled]="snoozeBusy()" (click)="liftSnooze()">
+        Lift snooze
+      </button>
+    } @else {
+      <p class="hint">Busy? Hold all notifications for a while.</p>
+      <div class="snooze-actions">
+        <button
+          type="button"
+          class="fc-secondary"
+          [disabled]="snoozeBusy()"
+          (click)="snoozeForHours(2)"
+        >
+          2 hours
+        </button>
+        <button
+          type="button"
+          class="fc-secondary"
+          [disabled]="snoozeBusy()"
+          (click)="snoozeForHours(4)"
+        >
+          4 hours
+        </button>
+        <button
+          type="button"
+          class="fc-secondary"
+          [disabled]="snoozeBusy()"
+          (click)="snoozeForHours(8)"
+        >
+          8 hours
+        </button>
+        <button
+          type="button"
+          class="fc-secondary"
+          [disabled]="snoozeBusy()"
+          (click)="snoozeUntilMorning()"
+        >
+          Until morning
+        </button>
+      </div>
+    }
+  </section>
+
   @if (loading()) {
     <p role="status">Loading…</p>
   } @else if (error()) {

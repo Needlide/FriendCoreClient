@@ -38,6 +38,7 @@ export class Notifications implements OnDestroy {
   protected readonly typeOptions = NOTIFICATION_TYPES;
   protected readonly muted = signal<Set<string>>(new Set());
   protected readonly typesSaving = signal(false);
+  protected readonly snoozeBusy = signal(false);
 
   constructor() {
     this.subscription = this.realtime.notification$.subscribe(() => this.reload());
@@ -66,6 +67,55 @@ export class Notifications implements OnDestroy {
 
   protected isMuted(type: string): boolean {
     return this.muted().has(type);
+  }
+
+  /** Active silence instant, if any — read from the shared service state. */
+  protected snoozedUntil(): string | null {
+    return this.notifications.snoozedUntil();
+  }
+
+  /** Friendly local rendering of the until-instant ("today, 14:30"). */
+  protected snoozedLabel(): string {
+    const until = this.snoozedUntil();
+    if (!until) return '';
+    const date = new Date(until);
+    const today = new Date();
+    const sameDay =
+      date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate();
+    const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return sameDay ? `today, ${time}` : `${date.toLocaleDateString()}, ${time}`;
+  }
+
+  /** Durations in hours, plus "until morning" (next 07:00 local). */
+  protected snoozeForHours(hours: number): void {
+    this.snoozeUntil(new Date(Date.now() + hours * 3_600_000).toISOString());
+  }
+
+  protected snoozeUntilMorning(): void {
+    const morning = new Date();
+    morning.setDate(morning.getDate() + 1);
+    morning.setHours(7, 0, 0, 0);
+    this.snoozeUntil(morning.toISOString());
+  }
+
+  private snoozeUntil(iso: string): void {
+    if (this.snoozeBusy()) return;
+    this.snoozeBusy.set(true);
+    this.notifications.snoozeUntil(iso).subscribe({
+      next: () => this.snoozeBusy.set(false),
+      error: () => this.snoozeBusy.set(false),
+    });
+  }
+
+  protected liftSnooze(): void {
+    if (this.snoozeBusy()) return;
+    this.snoozeBusy.set(true);
+    this.notifications.liftSnooze().subscribe({
+      next: () => this.snoozeBusy.set(false),
+      error: () => this.snoozeBusy.set(false),
+    });
   }
 
   protected toggleType(type: string, notify: boolean): void {

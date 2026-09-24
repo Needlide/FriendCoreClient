@@ -45,6 +45,35 @@ h1 {
   cursor: pointer;
 }
 
+.snooze {
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-3) var(--fc-space-4);
+  display: grid;
+  gap: var(--fc-space-2);
+}
+
+.snooze h2 {
+  margin: 0;
+  font-size: var(--fc-text-base);
+}
+
+.snooze p {
+  margin: 0;
+}
+
+.snooze .hint {
+  color: var(--fc-text-muted);
+  font-size: var(--fc-text-sm);
+}
+
+.snooze-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fc-space-2);
+}
+
 .rows {
   list-style: none;
   margin: 0;

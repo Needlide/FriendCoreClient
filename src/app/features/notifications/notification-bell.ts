@@ -3,20 +3,17 @@ import { RouterLink } from '@angular/router';
 
 /**
  * Quiet notification bell (components.md §NotificationBell): a plain count badge,
- * never pulsing, per the no-dopamine rule. The count is owned by the shell (it
- * reconciles via REST on every push/reconnect); this just renders it and links
- * to the list. Hidden badge at zero — silence, not "0".
+ * never pulsing, per the no-dopamine rule. Count and silence state are owned by
+ * NotificationsService; this just renders them and links to the list. Hidden badge
+ * at zero — silence, not "0". While snoozed the bell shows muted, so silence reads
+ * as a state, never as breakage.
  */
 @Component({
   selector: 'fc-notification-bell',
   imports: [RouterLink],
   template: `
-    <a
-      class="bell"
-      routerLink="/notifications"
-      [attr.aria-label]="unread() > 0 ? 'Notifications, ' + unread() + ' unread' : 'Notifications'"
-    >
-      <span aria-hidden="true">🔔</span>
+    <a class="bell" routerLink="/notifications" [attr.aria-label]="label()">
+      <span aria-hidden="true">{{ silenced() ? '🔕' : '🔔' }}</span>
       @if (unread() > 0) {
         <span class="badge">{{ unread() > 99 ? '99+' : unread() }}</span>
       }
@@ -54,4 +51,15 @@ import { RouterLink } from '@angular/router';
 })
 export class NotificationBell {
   unread = input<number>(0);
+  /** Silence-all instant (ISO) or null. Same signal the snooze UI writes through. */
+  silencedUntil = input<string | null>(null);
+
+  protected silenced(): boolean {
+    return this.silencedUntil() !== null;
+  }
+
+  protected label(): string {
+    if (this.silenced()) return 'Notifications silenced';
+    return this.unread() > 0 ? `Notifications, ${this.unread()} unread` : 'Notifications';
+  }
 }

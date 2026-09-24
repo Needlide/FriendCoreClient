@@ -40,6 +40,7 @@ export class Shell implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.notifications.refreshUnread();
+    this.notifications.loadSnooze();
     // Accessibility prefs apply document-wide (data-* on <html>); load failure
     // keeps the safe defaults — the settings page surfaces the error instead.
     this.prefs.load().subscribe({ error: () => undefined });
