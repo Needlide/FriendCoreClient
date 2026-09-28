@@ -13,6 +13,9 @@ describe('ReportDialog', () => {
     window.HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
       this.setAttribute('open', '');
     };
+    window.HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+    };
     await configureAuthTestBed([ReportDialog]);
     http = TestBed.inject(HttpTestingController);
   });
