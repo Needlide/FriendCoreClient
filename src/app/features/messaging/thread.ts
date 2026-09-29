@@ -1,13 +1,39 @@
 import { Component, DestroyRef, OnDestroy, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { EMPTY, Observable, Subscription, catchError, filter, map, switchMap, tap } from 'rxjs';
+import {
+  EMPTY,
+  Observable,
+  Subject,
+  Subscription,
+  catchError,
+  filter,
+  map,
+  switchMap,
+  takeUntil,
+  tap,
+} from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ApiError } from '../../core/models/api-error';
 import { MessageResponse } from '../../core/models/realtime.models';
+import { MediaService } from '../feed/media.service';
+import {
+  ACCEPTED_IMAGE_TYPES,
+  MAX_MEDIA_BYTES,
+  MediaUploadResponse,
+  UploadProgress,
+} from '../../core/models/posts.models';
+import { MediaViewer } from '../feed/media-viewer';
 import { AuthError } from '../auth/ui/auth-error';
 import { MessagingService } from './messaging.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
+
+/** Same lifecycle the post composer drives, trimmed to one attachment. */
+type AttachmentState =
+  | { kind: 'uploading'; percent: number; preview: string }
+  | { kind: 'processing'; preview: string }
+  | { kind: 'ready'; mediaId: string; preview: string }
+  | { kind: 'failed'; preview: string; message: string };
 
 /**
  * One conversation thread (`/messages/:id`, UI-Plan §1). The API returns messages
@@ -25,6 +51,11 @@ import { RealtimeService } from '../../core/realtime/realtime.service';
  *  - any reconnect refetches the latest page (missed pushes during the gap).
  *  - send failures keep the text in the box — never eat a typed message.
  *
+ * Attachments reuse the post media pipeline wholesale (POST /media → poll → Ready),
+ * so an image is uploaded once and usable in either place, and it carries the same
+ * flashing/intense-motion flags MediaViewer already honours. One per message, matching
+ * the server's single-slot contract.
+ *
  * Two subtleties the code depends on:
  *  - the param subscription runs through switchMap and is bound with
  *    takeUntilDestroyed. Switching conversations reuses this instance, so without
@@ -37,12 +68,13 @@ import { RealtimeService } from '../../core/realtime/realtime.service';
  */
 @Component({
   selector: 'fc-thread',
-  imports: [AuthError],
+  imports: [AuthError, MediaViewer],
   templateUrl: './thread.html',
   styleUrl: './thread.scss',
 })
 export class Thread implements OnDestroy {
   private readonly messaging = inject(MessagingService);
+  private readonly media = inject(MediaService);
   private readonly realtime = inject(RealtimeService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -57,9 +89,13 @@ export class Thread implements OnDestroy {
   protected readonly draft = signal('');
   protected readonly sending = signal(false);
   protected readonly sendError = signal(false);
+  protected readonly attachment = signal<AttachmentState | null>(null);
   private conversationId = '';
   private subscription: Subscription;
   private readonly destroyRef = inject(DestroyRef);
+
+  /** Cancels an in-flight upload/poll when a new file is picked or the draft discarded. */
+  private readonly superseded = new Subject<void>();
 
   constructor() {
     this.subscription = this.realtime.message$.subscribe((m) => this.onPush(m));
@@ -87,6 +123,7 @@ export class Thread implements OnDestroy {
 
   ngOnDestroy(): void {
     this.subscription.unsubscribe();
+    this.superseded.complete();
   }
 
   protected get exhausted(): boolean {
@@ -133,14 +170,18 @@ export class Thread implements OnDestroy {
 
   protected send(): void {
     const content = this.draft().trim();
-    if (!content || this.sending()) return;
+    const att = this.attachment();
+    const mediaId = att?.kind === 'ready' ? att.mediaId : null;
+    // The server rejects a message with neither text nor an attachment, so don't
+    // spend a round trip finding that out.
+    if ((!content && !mediaId) || this.sending()) return;
     this.sending.set(true);
     this.sendError.set(false);
     // Capture the id the send was started for: the user can switch conversations
     // before the POST returns, and the reply must not land in the new thread.
     const id = this.conversationId;
     this.messaging
-      .send(id, content)
+      .send(id, content || null, mediaId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (message) => {
@@ -148,14 +189,121 @@ export class Thread implements OnDestroy {
           // so a racing push of the same message can never duplicate it.
           this.merge([message]);
           this.draft.set('');
+          // The upload is now owned by the server; revoking the preview would blank
+          // the image we just rendered from that response, so drop the state only.
+          this.superseded.next();
+          this.attachment.set(null);
           this.sending.set(false);
           this.markRead(id);
         },
         error: () => {
+          // Keep the text AND the attachment: nothing was sent, so nothing is lost.
           this.sending.set(false);
           this.sendError.set(true);
         },
       });
+  }
+
+  /** File picker for the single attachment slot. Fast client checks, then upload. */
+  protected onFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // allow re-picking the same file after remove/failure
+    if (!file || this.attachmentBusy()) return;
+
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      this.attachment.set({
+        kind: 'failed',
+        preview: '',
+        message: 'Only JPEG, PNG, WebP, or GIF images.',
+      });
+      return;
+    }
+    if (file.size > MAX_MEDIA_BYTES) {
+      this.attachment.set({ kind: 'failed', preview: '', message: 'That file is over 20 MB.' });
+      return;
+    }
+
+    if (this.attachment()) this.removeAttachment();
+
+    const preview = URL.createObjectURL(file);
+    this.attachment.set({ kind: 'uploading', percent: 0, preview });
+    this.superseded.next();
+    this.media
+      .upload(file, { hasFlashingWarning: false, hasIntenseMotionWarning: false })
+      .pipe(takeUntil(this.superseded), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (event: UploadProgress | MediaUploadResponse) => {
+          if ('percent' in event) {
+            this.attachment.set({ kind: 'uploading', percent: event.percent, preview });
+          } else {
+            this.pollUntilReady(event, preview);
+          }
+        },
+        error: () => this.failAttachment(preview, 'Upload failed. Try again.'),
+      });
+  }
+
+  private pollUntilReady(uploaded: MediaUploadResponse, preview: string): void {
+    this.attachment.set({ kind: 'processing', preview });
+    this.media
+      .waitUntilReady(uploaded.id)
+      .pipe(takeUntil(this.superseded), takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (status) => {
+          if (status.status === 'Ready') {
+            this.attachment.set({ kind: 'ready', mediaId: uploaded.id, preview });
+          } else {
+            this.failAttachment(preview, 'The image could not be processed. Try another file.');
+          }
+        },
+        error: () => this.failAttachment(preview, 'Timed out waiting for the image. Try again.'),
+      });
+  }
+
+  protected removeAttachment(): void {
+    this.superseded.next();
+    const att = this.attachment();
+    if (att && 'preview' in att && att.preview) URL.revokeObjectURL(att.preview);
+    // An upload that was never attached to a message is an orphan; the server has no
+    // sweeper for it, so best-effort delete it here.
+    if (att && att.kind === 'ready') {
+      this.media
+        .deleteMedia(att.mediaId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({ error: () => undefined });
+    }
+    this.attachment.set(null);
+  }
+
+  private failAttachment(preview: string, message: string): void {
+    URL.revokeObjectURL(preview);
+    this.attachment.set({ kind: 'failed', preview: '', message });
+  }
+
+  private attachmentBusy(): boolean {
+    const att = this.attachment();
+    return att !== null && (att.kind === 'uploading' || att.kind === 'processing');
+  }
+
+  protected canSend(): boolean {
+    const att = this.attachment();
+    const ready = att !== null && att.kind === 'ready';
+    return !this.sending() && !this.attachmentBusy() && (this.draft().trim().length > 0 || ready);
+  }
+
+  protected attachmentBusyState(): boolean {
+    return this.attachmentBusy();
+  }
+
+  protected attachmentPercent(): number {
+    const att = this.attachment();
+    return att?.kind === 'uploading' ? att.percent : 0;
+  }
+
+  protected attachmentMessage(): string {
+    const att = this.attachment();
+    return att?.kind === 'failed' ? att.message : '';
   }
 
   protected retry(): void {
@@ -170,6 +318,9 @@ export class Thread implements OnDestroy {
     this.error.set(null);
     this.notFound.set(false);
     this.sendError.set(false);
+    // Switching conversations abandons a pending upload: it belongs to the previous
+    // thread's draft, and leaving it in the slot would attach it to the wrong message.
+    if (this.attachment()) this.removeAttachment();
   }
 
   private loadLatest(id: string): Observable<unknown> {

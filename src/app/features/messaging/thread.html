@@ -30,7 +30,12 @@
     <ul class="messages" role="log" aria-live="polite" aria-label="Messages">
       @for (m of messages(); track m.id) {
         <li class="bubble" [class.mine]="isMine(m)">
-          <p>{{ m.content }}</p>
+          @if (m.media; as media) {
+            <fc-media-viewer [media]="media" [compact]="true" />
+          }
+          @if (m.content) {
+            <p>{{ m.content }}</p>
+          }
         </li>
       } @empty {
         <li class="empty">No messages yet — say hi.</li>
@@ -41,22 +46,45 @@
       <p class="send-error" role="alert">Couldn't send. Your text is still here — try again.</p>
     }
     <form class="composer" (submit)="send(); $event.preventDefault()" aria-label="Send a message">
-      <label class="fc-sr-only" for="thread-draft">Message</label>
-      <textarea
-        id="thread-draft"
-        rows="2"
-        [value]="draft()"
-        (input)="onDraft($event)"
-        (keydown.enter)="onEnter($event)"
-        placeholder="Write a message…"
-      ></textarea>
-      <button
-        type="submit"
-        class="fc-primary"
-        [disabled]="sending() || draft().trim().length === 0"
-      >
-        {{ sending() ? 'Sending…' : 'Send' }}
-      </button>
+      @if (attachment(); as att) {
+        <div class="attachment">
+          @if (att.preview) {
+            <img class="preview" [src]="att.preview" alt="" />
+          }
+          @if (att.kind === 'uploading') {
+            <p class="status" role="status">Uploading… {{ attachmentPercent() }}%</p>
+          } @else if (att.kind === 'processing') {
+            <p class="status" role="status">Preparing image…</p>
+          } @else if (att.kind === 'failed') {
+            <p class="status error" role="alert">{{ attachmentMessage() }}</p>
+          }
+          <button type="button" class="fc-secondary remove" (click)="removeAttachment()">
+            Remove image
+          </button>
+        </div>
+      }
+      <div class="row">
+        <label class="fc-sr-only" for="thread-file">Attach an image</label>
+        <input
+          id="thread-file"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          [disabled]="attachmentBusyState()"
+          (change)="onFile($event)"
+        />
+        <label class="fc-sr-only" for="thread-draft">Message</label>
+        <textarea
+          id="thread-draft"
+          rows="2"
+          [value]="draft()"
+          (input)="onDraft($event)"
+          (keydown.enter)="onEnter($event)"
+          placeholder="Write a message…"
+        ></textarea>
+        <button type="submit" class="fc-primary" [disabled]="!canSend()">
+          {{ sending() ? 'Sending…' : 'Send' }}
+        </button>
+      </div>
     </form>
   }
 </div>

@@ -4,6 +4,8 @@
  * canonical, hydrated data — the payloads are intentionally skinny (IDs only).
  */
 
+import type { PostMedia } from './posts.models';
+
 /** Hub server → client method names (must match the server constants verbatim). */
 export const NOTIFICATION_EVENT = 'NotificationReceived';
 export const MESSAGE_EVENT = 'MessageReceived';
@@ -23,10 +25,12 @@ export interface MessageResponse {
   id: string;
   conversationId: string;
   senderId: string;
-  content: string;
-  /** MessageStatus: "Sent" | "Delivered" | "Read". */
+  /** Null for an attachment-only message — the bubble renders from `media` instead. */
+  content: string | null;
   status: string;
   createdAt: string;
+  /** Same shape a post's media uses, so MediaViewer renders either. */
+  media: PostMedia | null;
 }
 
 export type HubName = 'notifications' | 'messaging';

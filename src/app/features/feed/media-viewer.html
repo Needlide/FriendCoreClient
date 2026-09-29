@@ -1,9 +1,11 @@
-@if (revealedNow()) {
-  <img [src]="src()" alt="Attached image" loading="lazy" />
-} @else {
-  <div class="placeholder" role="group" aria-label="Sensitive media warning">
-    <p class="title">Sensitive media</p>
-    <p class="body">This media may contain flashing lights or intense motion.</p>
-    <button type="button" (click)="reveal()">Show media</button>
-  </div>
-}
+<div class="viewer" [class.compact]="compact()">
+  @if (revealedNow()) {
+    <img [src]="src()" alt="Attached image" loading="lazy" />
+  } @else {
+    <div class="placeholder" role="group" aria-label="Sensitive media warning">
+      <p class="title">Sensitive media</p>
+      <p class="body">This media may contain flashing lights or intense motion.</p>
+      <button type="button" (click)="reveal()">Show media</button>
+    </div>
+  }
+</div>

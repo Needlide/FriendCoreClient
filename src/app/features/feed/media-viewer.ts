@@ -21,6 +21,8 @@ export class MediaViewer {
   private readonly prefs = inject(PreferencesService);
 
   media = input.required<PostMedia>();
+  /** Tighter sizing for a chat bubble, where a feed-width image would dominate. */
+  compact = input(false);
 
   private readonly revealed = signal(false);
 
@@ -33,6 +35,10 @@ export class MediaViewer {
   /** Feed context → Medium variant, with a fallback chain if the set is partial. */
   protected readonly src = computed(() => {
     const variants = this.media().variants;
+    // A bubble is small, so prefer the smaller variant; a feed card has room for Medium.
+    const order = this.compact()
+      ? ['Small', 'Medium', 'Thumbnail', 'Large']
+      : ['Medium', 'Small', 'Large', 'Thumbnail'];
     const pick = (...types: string[]) => {
       for (const t of types) {
         const found = variants.find((v) => v.type === t);
@@ -40,7 +46,7 @@ export class MediaViewer {
       }
       return variants[0]?.url ?? '';
     };
-    return pick('Medium', 'Small', 'Large', 'Thumbnail');
+    return pick(...order);
   });
 
   protected revealedNow(): boolean {

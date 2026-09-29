@@ -65,10 +65,53 @@
 .composer {
   position: sticky;
   bottom: 0;
-  display: flex;
+  display: grid;
   gap: var(--fc-space-2);
   background: var(--fc-bg);
   padding: var(--fc-space-2) 0;
+}
+
+.composer .row {
+  display: flex;
+  gap: var(--fc-space-2);
+  align-items: end;
+}
+
+.composer input[type='file'] {
+  font: inherit;
+  font-size: var(--fc-text-sm);
+  max-width: 12rem;
+}
+
+.attachment {
+  display: flex;
+  align-items: center;
+  gap: var(--fc-space-3);
+  padding: var(--fc-space-2);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-surface);
+}
+
+.attachment .preview {
+  width: 3.5rem;
+  height: 3.5rem;
+  object-fit: cover;
+  border-radius: var(--fc-radius-sm);
+}
+
+.attachment .status {
+  margin: 0;
+  font-size: var(--fc-text-sm);
+  color: var(--fc-text-muted);
+}
+
+.attachment .status.error {
+  color: var(--fc-danger);
+}
+
+.attachment .remove {
+  margin-left: auto;
 }
 
 .composer textarea {
