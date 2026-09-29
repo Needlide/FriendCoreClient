@@ -12,7 +12,9 @@
       </span>
     </div>
     @if (canDelete()) {
-      <button type="button" class="danger-ghost" (click)="delete()">Delete</button>
+      <button type="button" class="danger-ghost" [disabled]="deleting()" (click)="delete()">
+        {{ deleting() ? 'Deleting…' : 'Delete' }}
+      </button>
     }
   </header>
 

@@ -1,6 +1,16 @@
-import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { catchError, debounceTime, distinctUntilChanged, filter, of, switchMap } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, of, switchMap } from 'rxjs';
 import { TagsService } from './tags.service';
 import { TagSuggestion } from '../../core/models/tags.models';
 
@@ -16,7 +26,9 @@ import { TagSuggestion } from '../../core/models/tags.models';
  *  - debounceTime(250): the spec asks for 200–300 ms after the last keystroke, so we
  *    don't DDoS the server per character.
  *  - distinctUntilChanged: re-renders (or a pasted-then-undone value) don't refetch.
- *  - filter(len ≥ 2): the server's minimum tag length — shorter queries can't match.
+ *  - short queries (< 2 chars, the server's minimum) resolve locally to `null`
+ *    rather than being filtered out: a filter would short-circuit the chain and
+ *    leave the listbox open showing the PREVIOUS query's results.
  *  - switchMap (not mergeMap): only the LATEST query's answer may render. Without it,
  *    a slow response for "ca" could overwrite the fresh results for "cat".
  *  - catchError → `of(null)`: a failed suggestion fetch must never break typing; the
@@ -33,6 +45,7 @@ import { TagSuggestion } from '../../core/models/tags.models';
 })
 export class TagInput {
   private readonly tags = inject(TagsService);
+  private readonly destroyRef = inject(DestroyRef);
 
   /** Visible label for the input (persistent — never placeholder-only, WCAG 3.3.2). */
   label = input.required<string>();
@@ -92,8 +105,14 @@ export class TagInput {
       .pipe(
         debounceTime(250),
         distinctUntilChanged(),
-        filter((q) => q.trim().length >= 2),
-        switchMap((q) => this.tags.autocomplete(q.trim()).pipe(catchError(() => of(null)))),
+        switchMap((q) =>
+          // Short queries are answered locally rather than filtered out: filtering
+          // short-circuited the whole chain, so backspacing to one character left
+          // the listbox open showing results for the previous, longer query.
+          q.trim().length < 2 ? of(null) : this.tags.autocomplete(q.trim()),
+        ),
+        catchError(() => of(null)),
+        takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((res) => {
         this.suggestions.set(res?.suggestions ?? []);

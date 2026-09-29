@@ -1,7 +1,7 @@
 import { HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
-import { Subject, of } from 'rxjs';
+import { Subject, BehaviorSubject, of } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { Thread } from './thread';
@@ -55,9 +55,7 @@ describe('Thread', () => {
       useValue: { message$: pushes.asObservable(), resync$: new Subject().asObservable() },
     });
     http = TestBed.inject(HttpTestingController);
-    TestBed.inject(AuthService)
-      .login({ username: 'alice', password: 'password123' })
-      .subscribe();
+    TestBed.inject(AuthService).login({ username: 'alice', password: 'password123' }).subscribe();
     expectApi(http, '/auth/login').flush(me);
   });
 
@@ -142,5 +140,68 @@ describe('Thread', () => {
     );
     fixture.detectChanges();
     expect(el.textContent).toContain('Conversation not found');
+  });
+});
+
+/**
+ * Regression for the switching-conversations race. Kept in its own describe because
+ * it needs a mutable paramMap (the instance-reuse case) rather than the fixed `of()`
+ * the suite above uses.
+ */
+describe('Thread conversation switching', () => {
+  let http: HttpTestingController;
+  const pushes = new Subject<unknown>();
+  let paramMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
+
+  beforeEach(async () => {
+    await configureAuthTestBed([Thread]);
+    paramMap$ = new BehaviorSubject(convertToParamMap({ id: 'c1' }));
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: { paramMap: paramMap$, snapshot: { paramMap: paramMap$.value } },
+    });
+    TestBed.overrideProvider(RealtimeService, {
+      useValue: { message$: pushes.asObservable(), resync$: new Subject().asObservable() },
+    });
+    http = TestBed.inject(HttpTestingController);
+    TestBed.inject(AuthService).login({ username: 'alice', password: 'password123' }).subscribe();
+    expectApi(http, '/auth/login').flush(me);
+  });
+
+  afterEach(() => http.verify());
+
+  /**
+   * Switching conversations reuses the component instance, and the old paramMap
+   * subscription was never torn down (paramMap is a never-completed BehaviorSubject).
+   * A slow response for the first conversation could therefore paint itself — and
+   * fire its mark-read beacon — inside the second one.
+   */
+  it('cancels the previous conversation load when :id changes', () => {
+    const fixture = TestBed.createComponent(Thread);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    const staleC1 = http.expectOne((r) => r.url.endsWith('/conversations/c1/messages'));
+
+    // Navigate to another conversation before c1 resolves.
+    paramMap$.next(convertToParamMap({ id: 'c2' }));
+    fixture.detectChanges();
+
+    // switchMap unsubscribed c1's request the moment c2's :id arrived.
+    expect(staleC1.cancelled).toBe(true);
+
+    expectApi(http, '/conversations/c2/messages').flush({
+      messages: [
+        { ...message('x2', 'bob', 'in c2'), conversationId: 'c2' },
+        { ...message('x1', 'me', 'also c2'), conversationId: 'c2' },
+      ],
+      nextCursor: null,
+    });
+    expectApi(http, '/conversations/c2/read').flush(null);
+    fixture.detectChanges();
+
+    expect(el.textContent).toContain('in c2');
+    expect(el.textContent).toContain('also c2');
+    // The abandoned conversation must not have marked itself read on the way out.
+    http.expectNone((r) => r.url.endsWith('/conversations/c1/read'));
   });
 });

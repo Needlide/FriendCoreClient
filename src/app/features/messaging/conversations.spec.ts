@@ -70,4 +70,49 @@ describe('Conversations', () => {
     req.flush({ ...listResponse.conversations[0], id: 'support1' });
     expect(navigate).toHaveBeenCalledWith(['/messages', 'support1']);
   });
+
+  /**
+   * Regression: `error` used to be set by a failed background refetch and never
+   * cleared on success. Since the template checks `@else if (error())` before the
+   * list, one transient failure stranded the user on "Try again" even after later
+   * refreshes repopulated the list behind it.
+   */
+  it('recovers the list after a failed background refetch', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/conversations').flush(listResponse);
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Bob');
+
+    // A push-triggered refresh fails.
+    pushes.next({ conversationId: 'c1' });
+    expectApi(http, '/conversations').flush(
+      [{ code: 'Common.ServerError', description: 'Boom.' }],
+      { status: 500, statusText: 'Server Error' },
+    );
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Try again');
+
+    // The next refresh succeeds — the error screen must not survive it.
+    pushes.next({ conversationId: 'c1' });
+    expectApi(http, '/conversations').flush(listResponse);
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Bob');
+    expect(el.textContent).not.toContain('Try again');
+  });
+
+  /** A burst of pushes must not leave overlapping GETs able to land out of order. */
+  it('cancels an in-flight refetch when a newer push arrives', () => {
+    const { fixture } = create();
+    expectApi(http, '/conversations').flush(listResponse);
+    fixture.detectChanges();
+
+    pushes.next({ conversationId: 'c1' });
+    const stale = http.expectOne((r) => r.url.endsWith('/conversations'));
+
+    pushes.next({ conversationId: 'c1' });
+    fixture.detectChanges();
+    expect(stale.cancelled).toBe(true);
+
+    expectApi(http, '/conversations').flush(listResponse);
+  });
 });

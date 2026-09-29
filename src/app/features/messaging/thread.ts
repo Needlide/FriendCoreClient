@@ -1,6 +1,7 @@
-import { Component, OnDestroy, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { EMPTY, Observable, Subscription, catchError, filter, map, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ApiError } from '../../core/models/api-error';
 import { MessageResponse } from '../../core/models/realtime.models';
@@ -23,6 +24,16 @@ import { RealtimeService } from '../../core/realtime/realtime.service';
  *    update via its own subscription).
  *  - any reconnect refetches the latest page (missed pushes during the gap).
  *  - send failures keep the text in the box — never eat a typed message.
+ *
+ * Two subtleties the code depends on:
+ *  - the param subscription runs through switchMap and is bound with
+ *    takeUntilDestroyed. Switching conversations reuses this instance, so without
+ *    switchMap a slow reply for the previous conversation would render under the
+ *    new one. (paramMap is a never-completed BehaviorSubject, so a plain
+ *    subscribe was never torn down by ngOnDestroy — it outlived the component.)
+ *  - the in-flight load carries the id it was started for. Reading the mutable
+ *    `conversationId` field inside a callback would attribute an old response to
+ *    whichever conversation happens to be open when it lands.
  */
 @Component({
   selector: 'fc-thread',
@@ -48,22 +59,30 @@ export class Thread implements OnDestroy {
   protected readonly sendError = signal(false);
   private conversationId = '';
   private subscription: Subscription;
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
     this.subscription = this.realtime.message$.subscribe((m) => this.onPush(m));
     this.subscription.add(
       this.realtime.resync$.subscribe((hub) => {
-        if (hub === 'messaging' && this.conversationId) this.reloadLatest();
+        if (hub === 'messaging' && this.conversationId) this.reloadLatest(this.conversationId);
       }),
     );
-    this.route.paramMap.subscribe((params) => {
-      const id = params.get('id');
-      if (id) {
-        this.conversationId = id;
-        this.reset();
-        this.loadLatest();
-      }
-    });
+    // switchMap (NOT mergeMap): switching from conversation A to B reuses this
+    // instance, so B's request must cancel A's — otherwise a slow A response
+    // lands afterwards and paints A's messages (and A's markRead) inside B.
+    this.route.paramMap
+      .pipe(
+        map((params) => params.get('id')),
+        filter((id): id is string => !!id),
+        switchMap((id) => {
+          this.conversationId = id;
+          this.reset();
+          return this.loadLatest(id);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
   }
 
   ngOnDestroy(): void {
@@ -94,17 +113,22 @@ export class Thread implements OnDestroy {
     const cursor = this.nextCursor();
     if (this.loadingOlder() || cursor === null || cursor === undefined) return;
     this.loadingOlder.set(true);
-    this.messaging.messages(this.conversationId, cursor).subscribe({
-      next: (res) => {
-        // Older history goes ABOVE: reverse to oldest-first, then prepend.
-        const seen = new Set(this.messages().map((m) => m.id));
-        const older = [...res.messages].reverse().filter((m) => !seen.has(m.id));
-        this.messages.update((current) => [...older, ...current]);
-        this.nextCursor.set(res.nextCursor);
-        this.loadingOlder.set(false);
-      },
-      error: () => this.loadingOlder.set(false),
-    });
+    // Same reasoning as send(): bind the id now, not when the response lands.
+    const id = this.conversationId;
+    this.messaging
+      .messages(id, cursor)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          // Older history goes ABOVE: reverse to oldest-first, then prepend.
+          const seen = new Set(this.messages().map((m) => m.id));
+          const older = [...res.messages].reverse().filter((m) => !seen.has(m.id));
+          this.messages.update((current) => [...older, ...current]);
+          this.nextCursor.set(res.nextCursor);
+          this.loadingOlder.set(false);
+        },
+        error: () => this.loadingOlder.set(false),
+      });
   }
 
   protected send(): void {
@@ -112,26 +136,32 @@ export class Thread implements OnDestroy {
     if (!content || this.sending()) return;
     this.sending.set(true);
     this.sendError.set(false);
-    this.messaging.send(this.conversationId, content).subscribe({
-      next: (message) => {
-        // The POST response is the source of truth for our own message — merge by id
-        // so a racing push of the same message can never duplicate it.
-        this.merge([message]);
-        this.draft.set('');
-        this.sending.set(false);
-        this.markRead();
-      },
-      error: () => {
-        this.sending.set(false);
-        this.sendError.set(true);
-      },
-    });
+    // Capture the id the send was started for: the user can switch conversations
+    // before the POST returns, and the reply must not land in the new thread.
+    const id = this.conversationId;
+    this.messaging
+      .send(id, content)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (message) => {
+          // The POST response is the source of truth for our own message — merge by id
+          // so a racing push of the same message can never duplicate it.
+          this.merge([message]);
+          this.draft.set('');
+          this.sending.set(false);
+          this.markRead(id);
+        },
+        error: () => {
+          this.sending.set(false);
+          this.sendError.set(true);
+        },
+      });
   }
 
   protected retry(): void {
     this.error.set(null);
     this.notFound.set(false);
-    this.loadLatest();
+    this.loadLatest(this.conversationId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
 
   private reset(): void {
@@ -142,39 +172,43 @@ export class Thread implements OnDestroy {
     this.sendError.set(false);
   }
 
-  private loadLatest(): void {
+  private loadLatest(id: string): Observable<unknown> {
     this.loading.set(true);
-    this.messaging.messages(this.conversationId).subscribe({
-      next: (res) => {
+    return this.messaging.messages(id).pipe(
+      tap((res) => {
         this.messages.set([...res.messages].reverse());
         this.nextCursor.set(res.nextCursor);
         this.loading.set(false);
-        this.markRead();
-      },
-      error: (err: unknown) => {
+        this.markRead(id);
+      }),
+      catchError((err: unknown) => {
         this.loading.set(false);
         if (err instanceof ApiError && err.status === 404) this.notFound.set(true);
         else this.error.set(err instanceof ApiError ? err : null);
-      },
-    });
+        return EMPTY;
+      }),
+    );
   }
 
   /** Refetch the latest page and merge — the reconcile path for pushes/reconnects. */
-  private reloadLatest(): void {
-    this.messaging.messages(this.conversationId).subscribe({
-      next: (res) => {
-        this.merge(res.messages);
-        this.nextCursor.set(res.nextCursor);
-        this.markRead();
-      },
-      error: () => undefined,
-    });
+  private reloadLatest(id: string): void {
+    this.messaging
+      .messages(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.merge(res.messages);
+          this.nextCursor.set(res.nextCursor);
+          this.markRead(id);
+        },
+        error: () => undefined,
+      });
   }
 
   private onPush(m: MessageResponse): void {
     if (m.conversationId !== this.conversationId) return;
     this.merge([m]);
-    this.markRead();
+    this.markRead(m.conversationId);
   }
 
   /**
@@ -192,10 +226,14 @@ export class Thread implements OnDestroy {
     });
   }
 
-  private markRead(): void {
+  private markRead(id: string): void {
     // Fire-and-forget: read state is derived server-side; a failed beacon just means
-    // the count clears on the next successful one.
-    this.messaging.markRead(this.conversationId).subscribe();
+    // the count clears on the next successful one. takeUntilDestroyed so the request
+    // is cancelled rather than resolving into a destroyed component.
+    this.messaging
+      .markRead(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => undefined });
   }
 
   protected goBack(): void {

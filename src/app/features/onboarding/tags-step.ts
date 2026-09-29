@@ -39,7 +39,10 @@ export class TagsStep {
   constructor() {
     effect(() => {
       const initial = this.initialTags();
-      if (initial && !this.initialApplied) {
+      // Never clobber what the user already picked. The prefill is a network
+      // response that can land AFTER they start typing; replacing the whole
+      // selection then would silently discard their tag on Continue.
+      if (initial && !this.initialApplied && this.selected().length === 0) {
         this.initialApplied = true;
         this.selected.set(initial.map((t) => ({ ...t })));
       }

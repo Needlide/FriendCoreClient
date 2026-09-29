@@ -55,7 +55,14 @@ export class NotificationBell {
   silencedUntil = input<string | null>(null);
 
   protected silenced(): boolean {
-    return this.silencedUntil() !== null;
+    // Compare against NOW, not just null: the shell reads the snooze state once
+    // and then lives for the whole session, so a 2h snooze checked 3h later would
+    // otherwise keep showing 🔕 and "Notifications silenced" long after the server
+    // resumed. A past instant means not silenced.
+    const until = this.silencedUntil();
+    if (!until) return false;
+    const at = Date.parse(until);
+    return !Number.isNaN(at) && at > Date.now();
   }
 
   protected label(): string {
