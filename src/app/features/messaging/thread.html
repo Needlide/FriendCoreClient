@@ -161,6 +161,13 @@
           [disabled]="attachmentBusyState()"
           (change)="onFile($event)"
         />
+        <!-- Declared BEFORE a file is chosen, not after. The safety flags are sent with the
+             upload request, so a declaration made afterwards would be silently ignored —
+             which would be worse than not offering one. Mirrors the post composer, where the
+             control likewise only exists in the no-attachment state. -->
+        @if (!attachment()) {
+          <fc-safety-declaration class="declare" [(declared)]="warnSafety" />
+        }
         <label class="fc-sr-only" for="thread-draft">Message</label>
         <textarea
           id="thread-draft"

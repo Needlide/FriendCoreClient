@@ -166,7 +166,9 @@ describe('Thread', () => {
     box.value = 'hey there';
     box.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    el.querySelector<HTMLButtonElement>('.composer button')!.click();
+    // Scoped to the submit button: the safety declaration embeds a Tooltip, whose "?" is
+    // also a <button> inside .composer, so an unscoped selector would click that instead.
+    el.querySelector<HTMLButtonElement>('.composer button[type=submit]')!.click();
 
     const req = expectApi(http, '/conversations/c1/messages');
     expect(req.request.body).toEqual({ content: 'hey there', mediaId: null });
@@ -523,6 +525,114 @@ describe('Thread', () => {
     // Editing a message that no longer exists would 404 on save.
     expect(el.querySelector('.editor')).toBeNull();
     expect(bubbleTexts(el)).toEqual(['third']);
+  });
+
+  it('declares media safety when sending an image in a DM', () => {
+    vi.useFakeTimers();
+    try {
+      const { fixture, el } = create();
+      loadLatest();
+      fixture.detectChanges();
+
+      // The declaration exists only before a file is chosen, because the flags go out with
+      // the upload request. A declaration made after the upload started would be dropped.
+      const box = el.querySelector<HTMLInputElement>('fc-safety-declaration input')!;
+      box.checked = true;
+      box.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
+
+      attachImage(el);
+      fixture.detectChanges();
+      const upload = expectApi(http, '/media');
+      // Both fields: the sender can say "one of these might apply", not which.
+      const form = upload.request.body as FormData;
+      expect(form.get('HasFlashingWarning')).toBe('true');
+      expect(form.get('HasIntenseMotionWarning')).toBe('true');
+
+      // Drain the upload so afterEach's http.verify() finds nothing open.
+      upload.flush({ id: 'dm-media-1', status: 'Processing' });
+      vi.advanceTimersByTime(0);
+      expectApi(http, '/media/dm-media-1/status').flush({ id: 'dm-media-1', status: 'Ready' });
+      fixture.detectChanges();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('hides the declaration once an image is attached, so it cannot be ticked too late', () => {
+    const { fixture, el } = create();
+    loadLatest();
+    fixture.detectChanges();
+    expect(el.querySelector('fc-safety-declaration')).not.toBeNull();
+
+    attachImage(el);
+    fixture.detectChanges();
+
+    // Offering a control whose value has already been sent would be a lie about what it does.
+    expect(el.querySelector('fc-safety-declaration')).toBeNull();
+
+    // Fail the upload: no polling chain is left dangling.
+    expectApi(http, '/media').flush('boom', { status: 500, statusText: 'Server Error' });
+  });
+
+  it('sends both hazard fields as false when nothing is declared', () => {
+    vi.useFakeTimers();
+    try {
+      const { fixture, el } = create();
+      loadLatest();
+      fixture.detectChanges();
+
+      attachImage(el);
+      fixture.detectChanges();
+      const upload = expectApi(http, '/media');
+      const form = upload.request.body as FormData;
+      expect(form.get('HasFlashingWarning')).toBe('false');
+      expect(form.get('HasIntenseMotionWarning')).toBe('false');
+
+      upload.flush({ id: 'dm-media-2', status: 'Processing' });
+      vi.advanceTimersByTime(0);
+      expectApi(http, '/media/dm-media-2/status').flush({ id: 'dm-media-2', status: 'Ready' });
+      fixture.detectChanges();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('clears the declaration after a successful send', () => {
+    vi.useFakeTimers();
+    const { fixture, el } = create();
+    loadLatest();
+    fixture.detectChanges();
+
+    const box = el.querySelector<HTMLInputElement>('fc-safety-declaration input')!;
+    box.checked = true;
+    box.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    attachImage(el);
+    fixture.detectChanges();
+    expectApi(http, '/media').flush({ id: 'dm-media-1', status: 'Processing' });
+    vi.advanceTimersByTime(0);
+    expectApi(http, '/media/dm-media-1/status').flush({ id: 'dm-media-1', status: 'Ready' });
+    fixture.detectChanges();
+
+    const text = el.querySelector<HTMLTextAreaElement>('.composer textarea')!;
+    text.value = 'look at this';
+    text.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('.composer button[type=submit]')!.click();
+    expectApi(http, '/conversations/c1/messages').flush({
+      ...message('m9', 'me', 'look at this'),
+      media: null,
+    });
+    expectApi(http, '/conversations/c1/read').flush(null);
+    fixture.detectChanges();
+
+    // It belongs to the pending upload, not to the conversation — otherwise the next image
+    // would inherit a declaration the user never made about it.
+    const next = el.querySelector<HTMLInputElement>('fc-safety-declaration input');
+    expect(next?.checked).toBe(false);
+    vi.useRealTimers();
   });
 });
 

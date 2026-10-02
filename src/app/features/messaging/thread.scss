@@ -205,6 +205,13 @@
   display: flex;
   gap: var(--fc-space-2);
   align-items: end;
+  flex-wrap: wrap;
+}
+
+/* The declaration label is long, so it drops onto its own line under the file picker
+   rather than being squeezed beside the textarea. */
+.composer .declare {
+  flex-basis: 100%;
 }
 
 .composer input[type='file'] {

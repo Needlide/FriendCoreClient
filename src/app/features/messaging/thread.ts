@@ -31,6 +31,7 @@ import { ReportTarget } from '../../core/models/settings.models';
 import { MessagingService } from './messaging.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { LinkifiedText } from '../shared/linkified-text';
+import { SafetyDeclaration } from '../shared/safety-declaration';
 
 /** Same lifecycle the post composer drives, trimmed to one attachment. */
 type AttachmentState =
@@ -72,7 +73,14 @@ type AttachmentState =
  */
 @Component({
   selector: 'fc-thread',
-  imports: [AuthError, MediaViewer, LinkifiedText, RelativeTimePipe, ReportDialog],
+  imports: [
+    AuthError,
+    MediaViewer,
+    LinkifiedText,
+    RelativeTimePipe,
+    ReportDialog,
+    SafetyDeclaration,
+  ],
   templateUrl: './thread.html',
   styleUrl: './thread.scss',
 })
@@ -94,6 +102,17 @@ export class Thread implements OnDestroy {
   protected readonly sending = signal(false);
   protected readonly sendError = signal(false);
   protected readonly attachment = signal<AttachmentState | null>(null);
+
+  /**
+   * Creator safety declaration for an attached image (API §7.4 layer 1) — the DM counterpart
+   * of the post composer's checkbox. DMs gained image sending recently and this hardcoded both
+   * flags to false, so a flashing GIF sent privately was the one surface where harmful media
+   * could not be declared at all. Same shared control as the composer, so the two cannot drift.
+   *
+   * Reset on conversation switch and after a successful send, for the same reason the attachment
+   * is: the declaration belongs to the pending upload, not to the thread.
+   */
+  protected readonly warnSafety = signal(false);
 
   // --- per-message actions (edit / delete / report) -------------------------------
   // One message is being edited inline; its draft lives here rather than in the composer,
@@ -222,6 +241,7 @@ export class Thread implements OnDestroy {
           // the image we just rendered from that response, so drop the state only.
           this.superseded.next();
           this.attachment.set(null);
+          this.warnSafety.set(false);
           this.sending.set(false);
           this.markRead(id);
         },
@@ -259,7 +279,12 @@ export class Thread implements OnDestroy {
     this.attachment.set({ kind: 'uploading', percent: 0, preview });
     this.superseded.next();
     this.media
-      .upload(file, { hasFlashingWarning: false, hasIntenseMotionWarning: false })
+      // The declaration sets both fields: the sender can say "one of these might apply", not
+      // which. Over-flagging is the safe direction (see SafetyDeclaration).
+      .upload(file, {
+        hasFlashingWarning: this.warnSafety(),
+        hasIntenseMotionWarning: this.warnSafety(),
+      })
       .pipe(takeUntil(this.superseded), takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (event: UploadProgress | MediaUploadResponse) => {
@@ -356,6 +381,8 @@ export class Thread implements OnDestroy {
     this.deletingId.set(null);
     this.reportingId.set('');
     this.actionError.set(null);
+    // The declaration belongs to a pending upload, not to the conversation.
+    this.warnSafety.set(false);
     // Switching conversations abandons a pending upload: it belongs to the previous
     // thread's draft, and leaving it in the slot would attach it to the wrong message.
     if (this.attachment()) this.removeAttachment();

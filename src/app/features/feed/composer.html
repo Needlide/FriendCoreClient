@@ -129,15 +129,7 @@
           (change)="onFile($event)"
         />
         <div class="checks">
-          <label>
-            <input
-              type="checkbox"
-              [checked]="warnSafety()"
-              (change)="warnSafety.set($any($event.target).checked)"
-            />
-            Contains flashing lights or intense motion
-          </label>
-          <fc-tooltip [text]="SAFETY_FLAG_HELP" label="What does this flag do?" />
+          <fc-safety-declaration [(declared)]="warnSafety" />
         </div>
       }
     }
