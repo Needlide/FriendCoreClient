@@ -140,9 +140,23 @@ the bell shows muted while active.
 
 ### Safety overlays
 
-Report dialog (post/profile/media triggers): `POST /posts/{id}/report`,
-`POST /users/{username}/report`, `POST /media/{id}/report-safety` — 9 fixed
-categories, optional note, "thank you + what happens next" success state.
+Report dialog (post/profile/message/media triggers): `POST /posts/{id}/report`,
+`POST /users/{username}/report`, `POST /conversations/{id}/messages/{messageId}/report`,
+`POST /media/{id}/report` — 9 fixed categories, optional note, "thank you + what
+happens next" success state. One `ReportTarget` union drives all four; the dialog
+itself is target-agnostic.
+
+Category "Flashing lights or intense motion" doubles as the sensitive-visual one,
+so a motion report has somewhere to land. Reporting with it also gates the image
+immediately (server-side), before a moderator triages it.
+
+Media is reportable from a DM bubble as "Report image", separately from "Report"
+on the message: removing a message drops the bubble but leaves the media row
+re-sendable, so the two are not interchangeable.
+
+Safety self-declaration (post composer + DM composer) is one shared
+`fc-safety-declaration`, shown only in the no-attachment state — the flags ride
+with the upload request, so it must be ticked *before* a file is chosen.
 
 ---
 
