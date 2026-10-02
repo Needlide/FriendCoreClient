@@ -103,6 +103,14 @@ otherwise block is immediate, no modal. Blocking the admin account → 400
 
 * List (`GET /conversations`): rows with unread counts; empty → "No messages yet" + hint.
 * Thread (`/messages/:id`): `GET .../messages?cursor=` is **newest-first** — display reversed with composer at bottom. Send via REST (sender already has the message; no optimistic echo needed beyond pending state). `POST .../read` on open. `MessageReceived` push = "something changed" → reconcile via REST; also reconcile on every reconnect (`RealtimeService.resync$`).
+* **Per-message actions** (own message): `⋯` menu under the bubble →
+  **Edit** (`PATCH .../messages/{messageId}`, inline textarea, optimistic with rollback) and
+  **Delete** (`DELETE .../messages/{messageId}`, confirm panel, removed only on success).
+  Both push `MessageEdited` / `MessageDeleted` to **both** participants, so an open thread on
+  either side corrects itself. Edit is text-only — an attachment-only bubble offers no Edit.
+  On the other participant's message the menu offers **Report** instead (self-reports are
+  refused server-side, so the option is not shown). Every bubble also renders its sent time
+  via `RelativeTimePipe`, plus a `· edited` marker when `editedAt` is set.
 * **Support chat**: entry point in `/help` and/or Messages empty state —
   "Message the team — thanks, bugs, quick questions. Abuse goes via Report."
   `POST /conversations/support` (find-or-create with admin inbox; 500
