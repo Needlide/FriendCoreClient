@@ -7,6 +7,7 @@ import { MessageResponse } from '../../core/models/realtime.models';
 import { AuthError } from '../auth/ui/auth-error';
 import { MessagingService } from './messaging.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
+import { LinkifiedText } from '../shared/linkified-text';
 
 /**
  * One conversation thread (`/messages/:id`, UI-Plan §1). The API returns messages
@@ -26,7 +27,7 @@ import { RealtimeService } from '../../core/realtime/realtime.service';
  */
 @Component({
   selector: 'fc-thread',
-  imports: [AuthError],
+  imports: [AuthError, LinkifiedText],
   templateUrl: './thread.html',
   styleUrl: './thread.scss',
 })

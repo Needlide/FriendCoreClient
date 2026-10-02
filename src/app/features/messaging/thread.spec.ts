@@ -55,9 +55,7 @@ describe('Thread', () => {
       useValue: { message$: pushes.asObservable(), resync$: new Subject().asObservable() },
     });
     http = TestBed.inject(HttpTestingController);
-    TestBed.inject(AuthService)
-      .login({ username: 'alice', password: 'password123' })
-      .subscribe();
+    TestBed.inject(AuthService).login({ username: 'alice', password: 'password123' }).subscribe();
     expectApi(http, '/auth/login').flush(me);
   });
 
@@ -79,7 +77,7 @@ describe('Thread', () => {
     const { fixture, el } = create();
     loadLatest();
     fixture.detectChanges();
-    const bubbles = Array.from(el.querySelectorAll('.bubble p')).map((b) => b.textContent);
+    const bubbles = Array.from(el.querySelectorAll('.bubble')).map((b) => b.textContent?.trim());
     expect(bubbles).toEqual(['second', 'third']);
   });
 
@@ -94,7 +92,7 @@ describe('Thread', () => {
     older.flush({ messages: [message('m1', 'bob', 'first')], nextCursor: null });
     fixture.detectChanges();
 
-    const bubbles = Array.from(el.querySelectorAll('.bubble p')).map((b) => b.textContent);
+    const bubbles = Array.from(el.querySelectorAll('.bubble')).map((b) => b.textContent?.trim());
     expect(bubbles).toEqual(['first', 'second', 'third']);
   });
 

@@ -17,7 +17,7 @@
         <h1>{{ p.displayName }}</h1>
         <span class="username">@{{ p.username }}</span>
         @if (p.bio) {
-          <p class="bio">{{ p.bio }}</p>
+          <fc-linkified-text class="bio" [text]="p.bio ?? ''" />
         }
         <p class="meta">
           @if (p.location) {

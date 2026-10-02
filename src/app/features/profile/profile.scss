@@ -45,9 +45,14 @@
 }
 
 .bio {
+  display: block;
   margin: var(--fc-space-2) 0 0;
   overflow-wrap: break-word;
   white-space: pre-line;
+}
+
+.bio a {
+  color: var(--fc-accent);
 }
 
 .meta {

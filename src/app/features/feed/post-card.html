@@ -17,7 +17,7 @@
   </header>
 
   @if (post().content) {
-    <p class="content">{{ post().content }}</p>
+    <fc-linkified-text class="content" [text]="post().content ?? ''" />
   }
 
   @if (post().tags.length > 0) {

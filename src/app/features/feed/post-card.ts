@@ -6,6 +6,7 @@ import { FeedService } from './feed.service';
 import { MediaViewer } from './media-viewer';
 import { RelativeTimePipe } from './relative-time.pipe';
 import { ReportDialog } from '../safety/report-dialog';
+import { LinkifiedText } from '../shared/linkified-text';
 
 /**
  * One post in the feed (`<article>`, per components.md). Owns exactly one piece of
@@ -22,7 +23,7 @@ import { ReportDialog } from '../safety/report-dialog';
  */
 @Component({
   selector: 'fc-post-card',
-  imports: [RouterLink, MediaViewer, RelativeTimePipe, ReportDialog],
+  imports: [RouterLink, MediaViewer, RelativeTimePipe, ReportDialog, LinkifiedText],
   templateUrl: './post-card.html',
   styleUrl: './post-card.scss',
 })

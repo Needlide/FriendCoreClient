@@ -33,6 +33,8 @@
   background: var(--fc-surface-2);
   border-radius: var(--fc-radius-sm);
   padding: var(--fc-space-2) var(--fc-space-3);
+  overflow-wrap: break-word;
+  white-space: pre-line;
 }
 
 .bubble.mine {
@@ -41,10 +43,9 @@
   color: var(--fc-accent-contrast);
 }
 
-.bubble p {
-  margin: 0;
-  overflow-wrap: break-word;
-  white-space: pre-line;
+.bubble.mine a {
+  color: inherit;
+  text-decoration: underline;
 }
 
 .empty {

@@ -9,6 +9,7 @@ import { PostCard } from '../feed/post-card';
 import { BlockMuteMenu } from '../social/block-mute-menu';
 import { FollowButton } from '../social/follow-button';
 import { UserCard } from '../social/user-card';
+import { LinkifiedText } from '../shared/linkified-text';
 import { MessagingService } from '../messaging/messaging.service';
 import { ProfileService } from './profile.service';
 
@@ -30,7 +31,7 @@ type Tab = 'posts' | 'followers' | 'following';
  */
 @Component({
   selector: 'fc-profile',
-  imports: [RouterLink, PostCard, FollowButton, BlockMuteMenu, UserCard, AuthError],
+  imports: [RouterLink, PostCard, FollowButton, BlockMuteMenu, UserCard, AuthError, LinkifiedText],
   templateUrl: './profile.html',
   styleUrl: './profile.scss',
 })
