@@ -1,4 +1,5 @@
-import { Component, inject, input, output, signal } from '@angular/core';
+import { Component, DestroyRef, inject, input, output, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { Post } from '../../core/models/posts.models';
 import { ReportTarget } from '../../core/models/settings.models';
@@ -29,6 +30,7 @@ import { LinkifiedText } from '../shared/linkified-text';
 })
 export class PostCard {
   private readonly feed = inject(FeedService);
+  private readonly destroyRef = inject(DestroyRef);
 
   post = input.required<Post>();
   /** Show the delete action (feed passes true only for the viewer's own posts). */
@@ -38,6 +40,8 @@ export class PostCard {
 
   private readonly liked = signal<boolean | null>(null);
   private readonly likeDelta = signal(0);
+  /** In-flight delete guard — re-arms on failure so the action stays retryable. */
+  protected readonly deleting = signal(false);
 
   /** Effective liked state: optimistic override wins until the request settles. */
   protected isLiked(): boolean {
@@ -60,7 +64,7 @@ export class PostCard {
     this.liked.set(target);
     this.likeDelta.set(target === this.post().isLikedByCurrentUser ? 0 : target ? 1 : -1);
     const call = target ? this.feed.like(this.post().id) : this.feed.unlike(this.post().id);
-    call.subscribe({
+    call.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       // Success: the optimistic state already equals the confirmed state — nothing to do.
       // (Concurrent likes elsewhere reconcile on the next feed load.)
       next: () => undefined,
@@ -73,9 +77,18 @@ export class PostCard {
   }
 
   protected delete(): void {
-    this.feed.deletePost(this.post().id).subscribe({
-      next: () => this.deleted.emit(this.post().id),
-    });
+    if (this.deleting()) return;
+    this.deleting.set(true);
+    this.feed
+      .deletePost(this.post().id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.deleted.emit(this.post().id),
+        // Keep the card visible and re-arm the button — a failed delete must not
+        // look like it worked. An unhandled error here used to reach the global
+        // ErrorHandler with no feedback on screen at all.
+        error: () => this.deleting.set(false),
+      });
   }
 
   /** Copies the permalink. Clipboard API with a legacy fallback (non-secure contexts). */

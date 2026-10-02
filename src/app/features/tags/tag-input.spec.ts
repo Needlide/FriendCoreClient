@@ -39,6 +39,7 @@ describe('TagInput', () => {
     const input = el.querySelector('input')!;
     input.value = text;
     input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
     return { fixture, el, input };
   }
 
@@ -81,6 +82,7 @@ describe('TagInput', () => {
     el.querySelector('input')!.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
     );
+    fixture.detectChanges();
     // Commas never survive server normalization (dropped), so submitting them whole
     // would mangle distinct tags into one slug — split before emitting.
     expect(emitted).toEqual(['synths', 'dreampop', 'shoegaze']);
@@ -116,6 +118,7 @@ describe('TagInput', () => {
     el.querySelector('input')!.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
     );
+    fixture.detectChanges();
     expect(emitted).toEqual(['dreampop']);
     expect((el.querySelector('input') as HTMLInputElement).value).toBe('');
     http.expectNone((req) => req.url.endsWith('/tags/autocomplete'));

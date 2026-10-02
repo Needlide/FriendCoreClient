@@ -1,9 +1,27 @@
-@if (revealedNow()) {
-  <img [src]="src()" alt="Attached image" loading="lazy" />
-} @else {
-  <div class="placeholder" role="group" aria-label="Sensitive media warning">
-    <p class="title">Sensitive media</p>
-    <p class="body">This media may contain flashing lights or intense motion.</p>
-    <button type="button" (click)="reveal()">Show media</button>
-  </div>
-}
+<div class="viewer" [class.compact]="compact()">
+  @if (revealedNow()) {
+    <!-- A button, not a click handler on the img: an image that opens something must be
+         reachable by keyboard, and this gets that for free. -->
+    <button type="button" class="zoom" aria-label="View image at full size" (click)="open()">
+      <img [src]="src()" alt="Attached image" loading="lazy" />
+    </button>
+  } @else {
+    <div class="placeholder" role="group" aria-label="Sensitive media warning">
+      <p class="title">Sensitive media</p>
+      <p class="body">This media may contain flashing lights or intense motion.</p>
+      <button type="button" (click)="reveal()">Show media</button>
+    </div>
+  }
+
+  <!-- The dialog is gated on revealedNow() too, not just hidden. Rendering a hidden
+       <img src> would still make the browser FETCH flagged media before consent, which
+       is the one thing the placeholder exists to prevent. -->
+  @if (revealedNow()) {
+    <dialog #lightbox class="lightbox" aria-label="Image at full size" (click)="onBackdrop($event)">
+      <img [src]="fullSrc()" alt="Attached image, full size" />
+      <button type="button" class="close" aria-label="Close full-size view" (click)="close()">
+        ✕
+      </button>
+    </dialog>
+  }
+</div>

@@ -1,7 +1,7 @@
 import { HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
-import { of } from 'rxjs';
+import { BehaviorSubject, of } from 'rxjs';
 import { vi } from 'vitest';
 import { AuthService } from '../../core/auth/auth.service';
 import { Profile } from './profile';
@@ -157,5 +157,79 @@ describe('Profile', () => {
     blockItem.click();
     expectApi(http, '/users/bob/block').flush(null);
     expect(navigate).toHaveBeenCalledWith(['/']);
+  });
+
+  /**
+   * Regression for the "page B, visuals of page A" bug: fast clicks (or a slow
+   * connection) let the FIRST profile response arrive AFTER the second one.
+   *
+   * switchMap unsubscribes the superseded request, so alice's late response has no
+   * subscriber left and the view stays on bob. Before the fix, alice's response
+   * landed last and repainted the header, the follow/message buttons and isSelf()
+   * with the wrong account — so following or blocking hit the wrong person.
+   */
+  it('ignores a superseded profile response that arrives late', async () => {
+    await configureAuthTestBed([Profile]);
+    const paramMap$ = new BehaviorSubject(convertToParamMap({ username: 'alice' }));
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: { paramMap: paramMap$, snapshot: { paramMap: paramMap$.value } },
+    });
+    http = TestBed.inject(HttpTestingController);
+    TestBed.inject(AuthService).login({ username: 'alice', password: 'password123' }).subscribe();
+    expectApi(http, '/auth/login').flush({ ...me, username: 'carol' });
+
+    const fixture = TestBed.createComponent(Profile);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    // alice is requested and still unresolved when we navigate away.
+    const lateAlice = http.expectOne((r) => r.url.endsWith('/users/alice'));
+
+    paramMap$.next(convertToParamMap({ username: 'bob' }));
+    fixture.detectChanges();
+
+    // switchMap unsubscribed alice's request the moment bob's :username arrived,
+    // so the superseded response is no longer deliverable at all.
+    expect(lateAlice.cancelled).toBe(true);
+
+    // bob (the page we are actually on) resolves normally.
+    expectApi(http, '/users/bob').flush({ ...profile, username: 'bob', displayName: 'Bobby' });
+    expectApi(http, '/users/bob/posts').flush({ posts: [post('1')], nextCursor: null });
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Bobby');
+    expect(el.textContent).not.toContain('Alice');
+  });
+
+  /** Regression: the header used to render above the PREVIOUS user's posts. */
+  it('clears the previous user’s posts before loading the next profile', async () => {
+    await configureAuthTestBed([Profile]);
+    const paramMap$ = new BehaviorSubject(convertToParamMap({ username: 'alice' }));
+    TestBed.overrideProvider(ActivatedRoute, {
+      useValue: { paramMap: paramMap$, snapshot: { paramMap: paramMap$.value } },
+    });
+    http = TestBed.inject(HttpTestingController);
+    TestBed.inject(AuthService).login({ username: 'alice', password: 'password123' }).subscribe();
+    expectApi(http, '/auth/login').flush({ ...me, username: 'carol' });
+
+    const fixture = TestBed.createComponent(Profile);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expectApi(http, '/users/alice').flush({ ...profile, username: 'alice', displayName: 'Alice' });
+    expectApi(http, '/users/alice/posts').flush({ posts: [post('a1')], nextCursor: 'c1' });
+    fixture.detectChanges();
+    expect(el.textContent).toContain('post a1');
+
+    paramMap$.next(convertToParamMap({ username: 'dave' }));
+    fixture.detectChanges();
+    // Header arrived, posts have not: alice's post must not still be on screen.
+    expectApi(http, '/users/dave').flush({ ...profile, username: 'dave', displayName: 'Dave' });
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Dave');
+    expect(el.textContent).not.toContain('post a1');
+
+    expectApi(http, '/users/dave/posts').flush({ posts: [post('d1')], nextCursor: null });
+    fixture.detectChanges();
+    expect(el.textContent).toContain('post d1');
   });
 });

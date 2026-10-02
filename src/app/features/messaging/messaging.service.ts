@@ -35,8 +35,17 @@ export class MessagingService {
     });
   }
 
-  send(id: string, content: string): Observable<MessageResponse> {
-    return this.api.post<MessageResponse>(ConversationsEndpoints.messages(id), { content });
+  /**
+   * Send a message. `mediaId` is an item already uploaded through POST /media and owned
+   * by the caller — the same two-step flow posts use, so an image is uploaded once and
+   * can then be used in either place. Pass text, an attachment, or both; the server
+   * rejects a request with neither, and never invents placeholder text for a bare image.
+   */
+  send(id: string, content: string | null, mediaId?: string | null): Observable<MessageResponse> {
+    return this.api.post<MessageResponse>(ConversationsEndpoints.messages(id), {
+      content: content?.trim() ? content.trim() : null,
+      mediaId: mediaId ?? null,
+    });
   }
 
   markRead(id: string): Observable<void> {

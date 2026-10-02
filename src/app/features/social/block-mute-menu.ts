@@ -83,6 +83,18 @@ export class BlockMuteMenu {
     this.state.set('idle');
   }
 
+  /**
+   * `<details>` fires `toggle` on BOTH open and close, so this must not blanket-reset
+   * the state. Doing so wiped a pending 409 confirmation the moment the user
+   * dismissed the menu (or re-opened it), silently discarding the two-step flow.
+   * Only a genuine CLOSE drops the transient prompt.
+   */
+  protected onToggle(event: Event): void {
+    const details = event.target as HTMLDetailsElement;
+    if (details.open) return;
+    if (this.state() === 'confirmBlock' || this.state() === 'failed') this.state.set('idle');
+  }
+
   protected toggleMute(): void {
     if (this.state() === 'saving') return;
     const target = !this.mutedNow();

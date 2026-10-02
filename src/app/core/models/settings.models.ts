@@ -53,6 +53,4 @@ export type ReportCategory = (typeof REPORT_CATEGORIES)[number]['value'];
 
 /** Where a report is filed — the dialog takes one of these targets. */
 export type ReportTarget =
-  | { kind: 'post'; id: string }
-  | { kind: 'user'; username: string }
-  | { kind: 'media'; id: string };
+  { kind: 'post'; id: string } | { kind: 'user'; username: string } | { kind: 'media'; id: string };

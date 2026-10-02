@@ -1,4 +1,5 @@
-import { Component, OnDestroy, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnDestroy, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { RelativeTimePipe } from '../feed/relative-time.pipe';
@@ -7,13 +8,18 @@ import { NOTIFICATION_TYPES, NotificationItem } from '../../core/models/notifica
 import { AuthError } from '../auth/ui/auth-error';
 import { NotificationsService } from './notifications.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
-import { Subscription } from 'rxjs';
+import { EMPTY, Observable, Subject, Subscription, catchError, switchMap, tap } from 'rxjs';
 
 /**
  * Notifications page (`/notifications`, UI-Plan §1). Hydrated REST list — the push
  * payloads are ID-only, so every `notification$` event (and every reconnect via
  * `resync$`) refetches the list rather than rendering the skinny push.
  * "Mark all read" clears the bell in one call (server marks ALL).
+ *
+ * Every refetch funnels through one switchMap'd trigger stream so a burst of pushes
+ * can't deliver overlapping responses out of order, and `error` is cleared on every
+ * attempt (not just on retry) so a transient failure never permanently masks a
+ * list that has since loaded fine.
  */
 @Component({
   selector: 'fc-notifications',
@@ -40,18 +46,32 @@ export class Notifications implements OnDestroy {
   protected readonly typesSaving = signal(false);
   protected readonly snoozeBusy = signal(false);
 
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly reload$ = new Subject<void>();
+
   constructor() {
-    this.subscription = this.realtime.notification$.subscribe(() => this.reload());
+    this.subscription = this.realtime.notification$.subscribe(() => this.reload$.next());
     this.subscription.add(
       this.realtime.resync$.subscribe((hub) => {
-        if (hub === 'notifications') this.reload();
+        if (hub === 'notifications') this.reload$.next();
       }),
     );
-    this.reload();
-    this.notifications.getMutedTypes().subscribe({
-      next: (res) => this.muted.set(new Set(res.mutedTypes)),
-      error: () => undefined, // toggles keep their defaults; the list is unaffected
-    });
+    this.reload$
+      .pipe(
+        switchMap(() => this.fetch()),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
+    // Must come AFTER the switchMap subscription above: a plain Subject does not
+    // replay, so a .next() before the subscriber exists is dropped entirely.
+    this.reload$.next();
+    this.notifications
+      .getMutedTypes()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => this.muted.set(new Set(res.mutedTypes)),
+        error: () => undefined, // toggles keep their defaults; the list is unaffected
+      });
   }
 
   ngOnDestroy(): void {
@@ -59,10 +79,13 @@ export class Notifications implements OnDestroy {
   }
 
   protected markAllRead(): void {
-    this.notifications.markAllRead().subscribe({
-      next: () => this.items.update((items) => items.map((n) => ({ ...n, isRead: true }))),
-      error: () => undefined,
-    });
+    this.notifications
+      .markAllRead()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.items.update((items) => items.map((n) => ({ ...n, isRead: true }))),
+        error: () => undefined,
+      });
   }
 
   protected isMuted(type: string): boolean {
@@ -71,7 +94,13 @@ export class Notifications implements OnDestroy {
 
   /** Active silence instant, if any — read from the shared service state. */
   protected snoozedUntil(): string | null {
-    return this.notifications.snoozedUntil();
+    const until = this.notifications.snoozedUntil();
+    if (!until) return null;
+    // A snooze that has already lapsed is not silence any more. The server stopped
+    // sending hours ago; without this the page still reads "Silenced until …".
+    const at = Date.parse(until);
+    if (Number.isNaN(at) || at <= Date.now()) return null;
+    return until;
   }
 
   /** Friendly local rendering of the until-instant ("today, 14:30"). */
@@ -103,19 +132,25 @@ export class Notifications implements OnDestroy {
   private snoozeUntil(iso: string): void {
     if (this.snoozeBusy()) return;
     this.snoozeBusy.set(true);
-    this.notifications.snoozeUntil(iso).subscribe({
-      next: () => this.snoozeBusy.set(false),
-      error: () => this.snoozeBusy.set(false),
-    });
+    this.notifications
+      .snoozeUntil(iso)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.snoozeBusy.set(false),
+        error: () => this.snoozeBusy.set(false),
+      });
   }
 
   protected liftSnooze(): void {
     if (this.snoozeBusy()) return;
     this.snoozeBusy.set(true);
-    this.notifications.liftSnooze().subscribe({
-      next: () => this.snoozeBusy.set(false),
-      error: () => this.snoozeBusy.set(false),
-    });
+    this.notifications
+      .liftSnooze()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.snoozeBusy.set(false),
+        error: () => this.snoozeBusy.set(false),
+      });
   }
 
   protected toggleType(type: string, notify: boolean): void {
@@ -124,14 +159,17 @@ export class Notifications implements OnDestroy {
     if (notify) next.delete(type);
     else next.add(type);
     this.typesSaving.set(true);
-    this.notifications.updateMutedTypes([...next]).subscribe({
-      next: (res) => {
-        // Adopt the server echo (unknown names dropped there), not our guess.
-        this.muted.set(new Set(res.mutedTypes));
-        this.typesSaving.set(false);
-      },
-      error: () => this.typesSaving.set(false),
-    });
+    this.notifications
+      .updateMutedTypes([...next])
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          // Adopt the server echo (unknown names dropped there), not our guess.
+          this.muted.set(new Set(res.mutedTypes));
+          this.typesSaving.set(false);
+        },
+        error: () => this.typesSaving.set(false),
+      });
   }
 
   /**
@@ -159,20 +197,27 @@ export class Notifications implements OnDestroy {
 
   protected retry(): void {
     this.error.set(null);
-    this.reload();
+    this.reload$.next();
   }
 
-  private reload(): void {
+  /**
+   * Clears `error` up front: one failed push-triggered refresh used to leave the
+   * error set forever, and since the template checks `@else if (error())` before
+   * the list, every later successful refetch stayed invisible behind "Try again".
+   */
+  private fetch(): Observable<unknown> {
     this.loading.set(true);
-    this.notifications.list().subscribe({
-      next: (res) => {
+    this.error.set(null);
+    return this.notifications.list().pipe(
+      tap((res) => {
         this.items.set(res.notifications);
         this.loading.set(false);
-      },
-      error: (err: unknown) => {
+      }),
+      catchError((err: unknown) => {
         this.error.set(err instanceof ApiError ? err : null);
         this.loading.set(false);
-      },
-    });
+        return EMPTY;
+      }),
+    );
   }
 }

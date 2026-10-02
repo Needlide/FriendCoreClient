@@ -1,4 +1,4 @@
-<details class="menu" (toggle)="cancelConfirm()">
+<details class="menu" (toggle)="onToggle($event)">
   <summary [attr.aria-label]="'More actions for ' + username()">⋯</summary>
   <div class="items" role="menu" [attr.aria-label]="'Actions for ' + username()">
     <button type="button" role="menuitem" (click)="toggleMute()" [disabled]="state() === 'saving'">

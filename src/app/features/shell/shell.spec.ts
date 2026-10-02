@@ -35,9 +35,7 @@ describe('Shell', () => {
     realtime.connect.mockClear();
     realtime.disconnect.mockClear();
     http = TestBed.inject(HttpTestingController);
-    TestBed.inject(AuthService)
-      .login({ username: 'alice', password: 'password123' })
-      .subscribe();
+    TestBed.inject(AuthService).login({ username: 'alice', password: 'password123' }).subscribe();
     expectApi(http, '/auth/login').flush(me);
   });
 

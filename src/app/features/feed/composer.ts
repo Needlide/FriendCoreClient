@@ -142,6 +142,11 @@ export class Composer {
       return;
     }
 
+    // Replacing a settled attachment (ready/failed) must not orphan it: revoke the
+    // old preview and drop the old server upload, exactly as removeAttachment does.
+    // Without this the first image stayed in memory for the page's lifetime.
+    if (this.attachment()) this.removeAttachment();
+
     const preview = URL.createObjectURL(file);
     this.attachment.set({ kind: 'uploading', percent: 0, preview });
     this.superseded.next(); // a previous in-flight upload/poll must not land here
@@ -222,8 +227,12 @@ export class Composer {
     if (att && 'preview' in att && att.preview) URL.revokeObjectURL(att.preview);
     if (att && att.kind === 'ready') {
       // Best-effort cleanup of the orphaned server upload; the composer works
-      // regardless of the outcome, so the result is ignored.
-      this.media.deleteMedia(att.mediaId).subscribe();
+      // regardless of the outcome, so the result is ignored. The error handler
+      // keeps a 5xx here from surfacing as an unhandled RxJS error.
+      this.media
+        .deleteMedia(att.mediaId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({ error: () => undefined });
     }
     this.attachment.set(null);
   }
@@ -242,6 +251,7 @@ export class Composer {
         mediaIds: att && att.kind === 'ready' ? [att.mediaId] : [],
         tags: this.tags(),
       })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (post) => {
           this.publishing.set(false);
@@ -264,18 +274,21 @@ export class Composer {
     if (this.checking() || this.cooling()) return;
     this.checking.set(true);
     this.stillUnverified.set(false);
-    this.auth.refresh().subscribe({
-      next: () => {
-        this.checking.set(false);
-        // Session signal drives `verified()` — if still false, say so plainly.
-        if (!this.verified()) this.stillUnverified.set(true);
-        this.startCooldown();
-      },
-      error: () => {
-        this.checking.set(false);
-        this.startCooldown();
-      },
-    });
+    this.auth
+      .refresh()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.checking.set(false);
+          // Session signal drives `verified()` — if still false, say so plainly.
+          if (!this.verified()) this.stillUnverified.set(true);
+          this.startCooldown();
+        },
+        error: () => {
+          this.checking.set(false);
+          this.startCooldown();
+        },
+      });
   }
 
   /**
@@ -296,13 +309,16 @@ export class Composer {
     const email = this.resendEmail().trim();
     if (this.resending() || !email) return;
     this.resending.set(true);
-    this.auth.resendVerification(email).subscribe({
-      next: () => {
-        this.resending.set(false);
-        this.resent.set(true);
-      },
-      error: () => this.resending.set(false),
-    });
+    this.auth
+      .resendVerification(email)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.resending.set(false);
+          this.resent.set(true);
+        },
+        error: () => this.resending.set(false),
+      });
   }
 
   private reset(): void {

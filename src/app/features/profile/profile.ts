@@ -1,5 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { EMPTY, Observable, Subject, catchError, filter, map, merge, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { ApiError } from '../../core/models/api-error';
 import { Post } from '../../core/models/posts.models';
@@ -23,7 +25,9 @@ type Tab = 'posts' | 'followers' | 'following';
  *
  * Two behaviors worth understanding:
  *  - paramMap subscription (not snapshot): navigating from one profile to another
- *    reuses this component instance, so we reload on every param change.
+ *    reuses this component instance, so we reload on every param change. The load
+ *    runs through switchMap so a slow earlier response can NEVER overwrite a newer
+ *    one — without it, fast navigation shows page A's data while the URL says B.
  *  - 404 copy is identical for missing and blocked profiles (anti-enumeration —
  *    content-and-a11y.md §3). After YOU block them here, we navigate home: their
  *    profile 404s for you from that moment, so staying would show a confusing
@@ -40,6 +44,7 @@ export class Profile {
   private readonly messaging = inject(MessagingService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly auth = inject(AuthService);
 
   protected readonly loading = signal(true);
@@ -55,12 +60,26 @@ export class Profile {
   protected readonly following = signal<UserSummary[] | null>(null);
   protected readonly listsLoading = signal(false);
 
+  /** Manual reload trigger, merged into the param stream (see the constructor). */
+  private readonly reload$ = new Subject<void>();
+
   constructor() {
     // Same component instance serves every /u/:username — reload per navigation.
-    this.route.paramMap.subscribe((params) => {
-      const username = params.get('username');
-      if (username) this.load(username);
-    });
+    //
+    // switchMap (NOT mergeMap) is the whole point: it unsubscribes the previous
+    // profile request the moment a new :username arrives, so a slow response for
+    // the old user can never land after — and overwrite — the new one's data.
+    // mergeMap would let both complete and the last one to arrive would win.
+    merge(this.route.paramMap.pipe(map((params) => params.get('username'))), this.reload$)
+      .pipe(
+        filter((username): username is string => !!username),
+        switchMap((username) => {
+          this.reset();
+          return this.load(username);
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe();
   }
 
   /** True when viewing your own profile (usernames compare case-insensitively). */
@@ -89,15 +108,18 @@ export class Profile {
     const cursor = this.nextCursor();
     if (!username || this.loadingMore() || cursor === null || cursor === undefined) return;
     this.loadingMore.set(true);
-    this.profiles.getPosts(username, cursor).subscribe({
-      next: (res) => {
-        const seen = new Set(this.posts().map((p) => p.id));
-        this.posts.update((posts) => [...posts, ...res.posts.filter((p) => !seen.has(p.id))]);
-        this.nextCursor.set(res.nextCursor);
-        this.loadingMore.set(false);
-      },
-      error: () => this.loadingMore.set(false),
-    });
+    this.profiles
+      .getPosts(username, cursor)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          const seen = new Set(this.posts().map((p) => p.id));
+          this.posts.update((posts) => [...posts, ...res.posts.filter((p) => !seen.has(p.id))]);
+          this.nextCursor.set(res.nextCursor);
+          this.loadingMore.set(false);
+        },
+        error: () => this.loadingMore.set(false),
+      });
   }
 
   protected dropPost(id: string): void {
@@ -125,62 +147,80 @@ export class Profile {
   }
 
   protected retry(): void {
-    const username = this.profile()?.username ?? this.route.snapshot.paramMap.get('username');
-    if (username) {
-      this.error.set(null);
-      this.notFound.set(false);
-      this.load(username);
-    }
+    this.error.set(null);
+    this.notFound.set(false);
+    this.reload$.next();
   }
 
-  private load(username: string): void {
+  /**
+   * Clears the previous user's data up front. Without this the new header would
+   * render above the OLD user's posts (and a "Load more" bound to their cursor)
+   * for the whole round trip between the profile response and the posts response.
+   */
+  private reset(): void {
     this.loading.set(true);
+    this.error.set(null);
+    this.notFound.set(false);
+    this.profile.set(null);
     this.tab.set('posts');
+    this.posts.set([]);
+    this.nextCursor.set(undefined);
     this.followers.set(null);
     this.following.set(null);
-    this.profiles.getProfile(username).subscribe({
-      next: (profile) => {
+  }
+
+  /**
+   * Header + posts as ONE observable so switchMap can cancel the pair together.
+   * The posts leg deliberately swallows its own errors: a failed post list must
+   * not replace a perfectly good header with an error screen.
+   */
+  private load(username: string): Observable<unknown> {
+    return this.profiles.getProfile(username).pipe(
+      switchMap((profile) => {
         this.profile.set(profile);
         this.loading.set(false);
-        this.loadPosts(profile.username);
-      },
-      error: (err: unknown) => {
+        return this.profiles.getPosts(profile.username).pipe(
+          tap((res) => {
+            this.posts.set(res.posts);
+            this.nextCursor.set(res.nextCursor);
+          }),
+          catchError(() => EMPTY),
+        );
+      }),
+      catchError((err: unknown) => {
         this.loading.set(false);
         if (err instanceof ApiError && err.status === 404) this.notFound.set(true);
         else this.error.set(err instanceof ApiError ? err : null);
-      },
-    });
-  }
-
-  private loadPosts(username: string): void {
-    this.profiles.getPosts(username).subscribe({
-      next: (res) => {
-        this.posts.set(res.posts);
-        this.nextCursor.set(res.nextCursor);
-      },
-      error: () => undefined, // posts failing shouldn't nuke the whole header
-    });
+        return EMPTY;
+      }),
+    );
   }
 
   private loadFollowers(username: string): void {
     this.listsLoading.set(true);
-    this.profiles.getFollowers(username).subscribe({
-      next: (res) => {
-        this.followers.set(res.users);
-        this.listsLoading.set(false);
-      },
-      error: () => this.listsLoading.set(false),
-    });
+    this.profiles
+      .getFollowers(username)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.followers.set(res.users);
+          this.listsLoading.set(false);
+        },
+        error: () => this.listsLoading.set(false),
+      });
   }
 
   private loadFollowing(username: string): void {
     this.listsLoading.set(true);
-    this.profiles.getFollowing(username).subscribe({
-      next: (res) => {
-        this.following.set(res.users);
-        this.listsLoading.set(false);
-      },
-      error: () => this.listsLoading.set(false),
-    });
+    this.profiles
+      .getFollowing(username)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.following.set(res.users);
+          this.listsLoading.set(false);
+        },
+        error: () => this.listsLoading.set(false),
+      });
   }
 }

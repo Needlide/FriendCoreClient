@@ -22,7 +22,9 @@
           (click)="resendVerification()"
           [disabled]="resending() || resent() || resendEmail().trim().length === 0"
         >
-          {{ resent() ? 'Email sent — check your inbox' : resending() ? 'Sending…' : 'Resend email' }}
+          {{
+            resent() ? 'Email sent — check your inbox' : resending() ? 'Sending…' : 'Resend email'
+          }}
         </button>
         <button type="button" (click)="recheckVerification()" [disabled]="checking() || cooling()">
           {{ checking() ? 'Checking…' : 'I verified — check again' }}
