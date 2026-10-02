@@ -21,10 +21,7 @@ import { FeedService } from './feed.service';
 import { MediaService } from './media.service';
 
 /**
- * The explanation behind BOTH safety checkboxes. One string for both, deliberately: the two
- * flags are not two features. `MediaViewer.flagged` fires on `hasFlashingWarning ||
- * hasIntenseMotionWarning`, so ticking either produces exactly the same behaviour for the
- * reader, and copy that implied otherwise would be inventing a difference.
+ * The explanation behind the single safety checkbox.
  *
  * The wording is kept honest about the limits — this is the creator's own declaration
  * (spec §7.4 layer 1 of three), it does not hide the image from everyone, and it does not
@@ -93,9 +90,22 @@ export class Composer {
 
   protected readonly tags = signal<string[]>([]);
   protected readonly attachment = signal<AttachmentState | null>(null);
-  /** Creator self-declaration (API §7.4 three-layer safety, layer 1). */
-  protected readonly warnFlashing = signal(false);
-  protected readonly warnMotion = signal(false);
+  /**
+   * Creator self-declaration (API §7.4 three-layer safety, layer 1).
+   *
+   * ONE switch, not two. `MediaViewer.flagged` gates on `hasFlashingWarning ||
+   * hasIntenseMotionWarning` behind a single preference, so the two flags are
+   * indistinguishable to the reader — two separate checkboxes would have been two
+   * identical switches, and a user could untick the wrong one while a shaky video
+   * sailed through. Ticking this sets BOTH fields.
+   *
+   * Setting both is deliberate over-flagging: the user is declaring "this may be
+   * hazardous in either way" and cannot know which it is. Both fields stay distinct
+   * in the data model because they are the natural inputs to automated flashing
+   * detection later, and because a photosensitivity seizure risk is a harder hazard
+   * than a motion nuisance — the day they diverge, they should not have to share a column.
+   */
+  protected readonly warnSafety = signal(false);
   /**
    * Reactive verification state (from the session, not a one-shot fetch).
    * The notice renders BEFORE anything is typed — the old design only reacted to
@@ -171,8 +181,8 @@ export class Composer {
     this.attachment.set({ kind: 'uploading', percent: 0, preview });
     this.superseded.next(); // a previous in-flight upload/poll must not land here
     const flags = {
-      hasFlashingWarning: this.warnFlashing(),
-      hasIntenseMotionWarning: this.warnMotion(),
+      hasFlashingWarning: this.warnSafety(),
+      hasIntenseMotionWarning: this.warnSafety(),
     };
     this.media
       .upload(file, flags)

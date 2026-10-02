@@ -132,20 +132,10 @@
           <label>
             <input
               type="checkbox"
-              [checked]="warnFlashing()"
-              (change)="warnFlashing.set($any($event.target).checked)"
+              [checked]="warnSafety()"
+              (change)="warnSafety.set($any($event.target).checked)"
             />
-            Contains flashing lights
-          </label>
-          <fc-tooltip [text]="SAFETY_FLAG_HELP" label="What does this flag do?" />
-
-          <label>
-            <input
-              type="checkbox"
-              [checked]="warnMotion()"
-              (change)="warnMotion.set($any($event.target).checked)"
-            />
-            Contains intense motion
+            Contains flashing lights or intense motion
           </label>
           <fc-tooltip [text]="SAFETY_FLAG_HELP" label="What does this flag do?" />
         </div>

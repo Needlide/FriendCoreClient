@@ -218,9 +218,11 @@ describe('Composer', () => {
 
   it('explains the safety flags with a tooltip that names the real consequence', () => {
     const { fixture, el } = create();
+    // One checkbox, so one tooltip — a flag nobody can explain is a flag nobody
+    // understands. (It was two checkboxes until the flags were collapsed: they gate
+    // identically behind one preference, so two switches was a trap.)
     const triggers = el.querySelectorAll('fc-tooltip .trigger');
-    // One per checkbox — a flag nobody can explain is a flag nobody understands.
-    expect(triggers.length).toBe(2);
+    expect(triggers.length).toBe(1);
 
     triggers[0].dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
     fixture.detectChanges();
@@ -234,17 +236,17 @@ describe('Composer', () => {
     expect(bubble.getAttribute('role')).toBe('tooltip');
   });
 
-  it('sends both flags to the upload endpoint', () => {
+  it('sends both hazard fields from the single declaration', () => {
     const { fixture, el } = create();
     writeText(el, 'with flags');
     fixture.detectChanges();
 
+    // Deliberately ONE switch: the reader sees no difference between the two flags, so
+    // asking the user to distinguish them would be asking a question with no answer.
     const boxes = el.querySelectorAll<HTMLInputElement>('.checks input[type=checkbox]');
-    expect(boxes.length).toBe(2);
+    expect(boxes.length).toBe(1);
     boxes[0].checked = true;
     boxes[0].dispatchEvent(new Event('change'));
-    boxes[1].checked = true;
-    boxes[1].dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
     const file = new File(['x'], 'a.png', { type: 'image/png' });
