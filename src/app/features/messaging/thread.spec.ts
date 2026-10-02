@@ -634,6 +634,62 @@ describe('Thread', () => {
     expect(next?.checked).toBe(false);
     vi.useRealTimers();
   });
+
+  it('offers "Report image" only on someone elses message that carries media', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/conversations/c1/messages').flush({
+      messages: [
+        message('m1', 'me', null, media),
+        message('m2', 'bob', 'look', media),
+        message('m3', 'bob', 'no image here'),
+      ],
+      nextCursor: null,
+    });
+    expectApi(http, '/conversations/c1/read').flush(null);
+    fixture.detectChanges();
+
+    const labels = (index: number) =>
+      Array.from(
+        el.querySelectorAll('.bubble')[index].querySelectorAll('.actions [role=menuitem]'),
+      ).map((b) => b.textContent?.trim());
+
+    // The feed is newest-first and the thread reverses it, so oldest-at-top means:
+    // m3 (theirs, text only) → m2 (theirs, with media) → m1 (mine, media, no text).
+    expect(labels(0)).toEqual(['Report']);
+    expect(labels(1)).toEqual(['Report', 'Report image']);
+    // Your own upload is not reportable, and a text-only bubble has no image to report —
+    // and an attachment-only bubble has no text to edit.
+    expect(labels(2)).toEqual(['Delete']);
+  });
+
+  it('posts a media report to the media endpoint, not the message one', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/conversations/c1/messages').flush({
+      messages: [message('m2', 'bob', 'look', media)],
+      nextCursor: null,
+    });
+    expectApi(http, '/conversations/c1/read').flush(null);
+    fixture.detectChanges();
+
+    el.querySelectorAll('.bubble')[0]
+      .querySelectorAll<HTMLButtonElement>('.actions [role=menuitem]')[1]!
+      .click();
+    fixture.detectChanges();
+
+    const dialog = el.querySelector<HTMLDialogElement>('fc-report-dialog dialog')!;
+    expect(dialog.open).toBe(true);
+    dialog.querySelector<HTMLInputElement>('input[type=radio]')!.click();
+    fixture.detectChanges();
+    dialog.querySelector<HTMLButtonElement>('.actions .fc-primary')!.click();
+
+    // Reporting the image, not the bubble: a removed message would leave the media row
+    // alive and re-sendable.
+    const req = http.expectOne(
+      (r) => r.method === 'POST' && r.url.endsWith(`/media/${media.id}/report`),
+    );
+    expect(req.request.body.category).toBeTruthy();
+    req.flush(null);
+  });
 });
 
 /**

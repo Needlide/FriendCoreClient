@@ -126,11 +126,19 @@ export class Thread implements OnDestroy {
   protected readonly confirmingDeleteId = signal<string | null>(null);
   protected readonly deletingId = signal<string | null>(null);
   /**
-   * Message the report dialog is filed against. Starts empty because ReportDialog's `target` is
-   * a required input and the dialog is rendered permanently; openReport() always sets it before
-   * the dialog can be opened, so the empty value is never the one reported.
+   * What the report dialog is filed against. A full target rather than an id because one
+   * bubble can offer two distinct reports — the message, and the image inside it — and they
+   * are not interchangeable: removing a message drops the bubble but leaves the media row
+   * alive, so an image reported only via its message could still be re-sent.
+   *
+   * Starts empty because ReportDialog's `target` is a required input and the dialog is
+   * rendered permanently; openReport*() always sets it before the dialog can be opened.
    */
-  protected readonly reportingId = signal('');
+  protected readonly reportingTarget = signal<ReportTarget>({
+    kind: 'message',
+    conversationId: '',
+    id: '',
+  });
   /** Inline banner copy for an action that failed; cleared by the next attempt. */
   protected readonly actionError = signal<string | null>(null);
 
@@ -379,7 +387,9 @@ export class Thread implements OnDestroy {
     this.editFailed.set(false);
     this.confirmingDeleteId.set(null);
     this.deletingId.set(null);
-    this.reportingId.set('');
+    // Cleared to a placeholder: the dialog is closed whenever this resets, and openReport*
+    // always overwrites it before the dialog can be opened.
+    this.reportingTarget.set({ kind: 'message', conversationId: '', id: '' });
     this.actionError.set(null);
     // The declaration belongs to a pending upload, not to the conversation.
     this.warnSafety.set(false);
@@ -521,11 +531,25 @@ export class Thread implements OnDestroy {
   // --- report -------------------------------------------------------------------------
 
   protected openReport(messageId: string): void {
-    this.reportingId.set(messageId);
+    this.reportingTarget.set({
+      kind: 'message',
+      conversationId: this.conversationId,
+      id: messageId,
+    });
+  }
+
+  /** Reports the image itself, not the message that carries it. */
+  protected openReportImage(mediaId: string): void {
+    this.reportingTarget.set({ kind: 'media', id: mediaId });
+  }
+
+  /** True when this bubble's image can be reported — never your own upload. */
+  protected canReportImage(m: MessageResponse): boolean {
+    return !this.isMine(m) && m.media !== null;
   }
 
   protected reportTarget(): ReportTarget {
-    return { kind: 'message', conversationId: this.conversationId, id: this.reportingId() };
+    return this.reportingTarget();
   }
 
   private onPush(m: MessageResponse): void {

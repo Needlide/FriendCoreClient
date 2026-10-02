@@ -93,6 +93,18 @@
                   >
                     Report
                   </button>
+                  <!-- Reports the image itself. Removing a message would drop the bubble but
+                       leave the media row alive, so an image reported only via its message
+                       could still be re-sent. -->
+                  @if (canReportImage(m)) {
+                    <button
+                      type="button"
+                      role="menuitem"
+                      (click)="openReportImage(m.media!.id); reportDialog.open()"
+                    >
+                      Report image
+                    </button>
+                  }
                 }
               </div>
             </details>

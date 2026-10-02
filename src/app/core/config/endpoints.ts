@@ -99,5 +99,7 @@ export const ModerationEndpoints = {
   myActions: '/users/me/moderation-actions',
   appeals: '/appeals',
   reportPost: (id: string) => `/posts/${id}/report`,
-  reportMedia: (id: string) => `/media/${id}/report-safety`,
+  /** §13.4 categories. Replaces the old {flashing,intenseMotion} safety-only endpoint,
+   *  which gated the media but created no Report — so no moderator ever saw it. */
+  reportMedia: (id: string) => `/media/${id}/report`,
 } as const;

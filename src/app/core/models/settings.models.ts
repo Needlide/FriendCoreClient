@@ -45,7 +45,11 @@ export const REPORT_CATEGORIES = [
   { value: 'PrivateInformation', label: 'It includes my private information' },
   { value: 'Copyright', label: 'It violates my copyright' },
   { value: 'InvolvesMinor', label: 'It involves a minor in a concerning way' },
-  { value: 'FlashingLights', label: 'Flashing lights / seizure risk' },
+  // The wire value stays "FlashingLights" — it is persisted as a string in reports.category,
+  // so renaming the enum member would orphan every existing row. Only the label moved:
+  // this category now also covers intense motion, per §7.4 layer 2 ("Flashing / intense
+  // visual content"), which is how a motion report can reach a moderator at all.
+  { value: 'FlashingLights', label: 'Flashing lights or intense motion' },
   { value: 'Other', label: 'Something else' },
 ] as const;
 

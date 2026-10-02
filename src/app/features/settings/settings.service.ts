@@ -66,9 +66,7 @@ export class SettingsService {
           body,
         );
       case 'media':
-        // Deliberately unimplemented: media safety is {flashing, intenseMotion},
-        // not {category, note} — it needs its own dialog, not this one.
-        throw new Error('Media safety reports need a dedicated flow.');
+        return this.api.post<void>(ModerationEndpoints.reportMedia(target.id), body);
     }
   }
 }
