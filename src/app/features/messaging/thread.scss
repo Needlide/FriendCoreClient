@@ -48,19 +48,133 @@
   text-decoration: underline;
 }
 
-/* The bubble sets pre-line for message text; the timestamp is not message text,
-   so it opts back out or the template's own indentation would render as newlines. */
-.sent-at {
-  display: block;
+/* The bubble sets pre-line for message text; the meta row and the menu chrome are not
+   message text, so they opt back out or the template's own indentation renders as
+   newlines. */
+.meta {
+  display: flex;
+  gap: var(--fc-space-1);
   white-space: normal;
-  margin-top: var(--fc-space-1);
+  margin: var(--fc-space-1) 0 0;
   font-size: var(--fc-text-sm);
   color: var(--fc-text-muted);
 }
 
-.bubble.mine .sent-at {
+.bubble.mine .meta {
   color: inherit;
   opacity: 0.75;
+}
+
+.edited {
+  opacity: 0.9;
+}
+
+/* Actions sit under the meta row rather than floating over the bubble: a hover-only
+   affordance would be unreachable by keyboard and invisible on touch. */
+.actions {
+  white-space: normal;
+  margin-top: var(--fc-space-1);
+}
+
+.actions summary {
+  display: inline-block;
+  cursor: pointer;
+  list-style: none;
+  padding: 0 var(--fc-space-1);
+  color: var(--fc-text-muted);
+  border-radius: var(--fc-radius-sm);
+}
+
+.actions summary::-webkit-details-marker {
+  display: none;
+}
+
+.actions summary:focus-visible {
+  outline: 2px solid var(--fc-accent);
+  outline-offset: 2px;
+}
+
+.actions .items {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  min-width: 8rem;
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  box-shadow: var(--fc-shadow);
+  overflow: hidden;
+}
+
+.actions .items button {
+  font: inherit;
+  text-align: left;
+  border: 0;
+  background: none;
+  color: var(--fc-text);
+  cursor: pointer;
+  padding: var(--fc-space-2) var(--fc-space-3);
+  white-space: normal;
+}
+
+.actions .items button:hover {
+  background: var(--fc-surface-2);
+}
+
+.actions .items button.danger {
+  color: var(--fc-danger);
+}
+
+/* Editing replaces the bubble body, so it goes full width: a textarea squeezed into 75%
+   of the column would wrap every few words. */
+.bubble.editing {
+  max-width: 100%;
+}
+
+.editor {
+  display: grid;
+  gap: var(--fc-space-2);
+}
+
+.editor textarea {
+  font: inherit;
+  width: 100%;
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-2);
+  background: var(--fc-surface);
+  color: var(--fc-text);
+  resize: vertical;
+}
+
+.editor-actions,
+.confirm-actions {
+  display: flex;
+  gap: var(--fc-space-2);
+  justify-content: flex-end;
+}
+
+.editor-error {
+  margin: 0;
+  color: var(--fc-danger);
+  font-size: var(--fc-text-sm);
+  white-space: normal;
+}
+
+.confirm {
+  white-space: normal;
+  margin-top: var(--fc-space-2);
+  padding: var(--fc-space-2) var(--fc-space-3);
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  display: grid;
+  gap: var(--fc-space-1);
+}
+
+.confirm p {
+  margin: 0;
+  font-size: var(--fc-text-sm);
 }
 
 .empty {

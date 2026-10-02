@@ -1,7 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClient } from '../../core/api/api-client';
-import { ModerationEndpoints, UsersEndpoints } from '../../core/config/endpoints';
+import {
+  ConversationsEndpoints,
+  ModerationEndpoints,
+  UsersEndpoints,
+} from '../../core/config/endpoints';
 import {
   KeywordFiltersResponse,
   MyModerationActionsResponse,
@@ -56,6 +60,11 @@ export class SettingsService {
         return this.api.post<void>(ModerationEndpoints.reportPost(target.id), body);
       case 'user':
         return this.api.post<void>(UsersEndpoints.reportUser(target.username), body);
+      case 'message':
+        return this.api.post<void>(
+          ConversationsEndpoints.reportMessage(target.conversationId, target.id),
+          body,
+        );
       case 'media':
         // Deliberately unimplemented: media safety is {flashing, intenseMotion},
         // not {category, note} — it needs its own dialog, not this one.

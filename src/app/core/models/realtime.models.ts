@@ -9,6 +9,8 @@ import type { PostMedia } from './posts.models';
 /** Hub server → client method names (must match the server constants verbatim). */
 export const NOTIFICATION_EVENT = 'NotificationReceived';
 export const MESSAGE_EVENT = 'MessageReceived';
+export const MESSAGE_EDITED_EVENT = 'MessageEdited';
+export const MESSAGE_DELETED_EVENT = 'MessageDeleted';
 
 /** Payload of NotificationReceived (NotificationHub). */
 export interface RealtimeNotification {
@@ -31,6 +33,17 @@ export interface MessageResponse {
   createdAt: string;
   /** Same shape a post's media uses, so MediaViewer renders either. */
   media: PostMedia | null;
+  /** Set the first time the sender rewrote the text; null means never edited. */
+  editedAt: string | null;
+}
+
+/**
+ * Payload of MessageEdited and MessageDeleted (MessagingHub). Unlike MessageReceived, both
+ * participants receive these — the sender's other devices need them too. Ids only for a
+ * delete: the content is already gone server-side, and a refetch would learn nothing more.
+ */
+export interface MessageDeletedPayload {
+  messageId: string;
 }
 
 export type HubName = 'notifications' | 'messaging';

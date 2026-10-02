@@ -26,6 +26,8 @@ import {
 import { MediaViewer } from '../feed/media-viewer';
 import { RelativeTimePipe } from '../feed/relative-time.pipe';
 import { AuthError } from '../auth/ui/auth-error';
+import { ReportDialog } from '../safety/report-dialog';
+import { ReportTarget } from '../../core/models/settings.models';
 import { MessagingService } from './messaging.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { LinkifiedText } from '../shared/linkified-text';
@@ -70,7 +72,7 @@ type AttachmentState =
  */
 @Component({
   selector: 'fc-thread',
-  imports: [AuthError, MediaViewer, LinkifiedText, RelativeTimePipe],
+  imports: [AuthError, MediaViewer, LinkifiedText, RelativeTimePipe, ReportDialog],
   templateUrl: './thread.html',
   styleUrl: './thread.scss',
 })
@@ -92,6 +94,27 @@ export class Thread implements OnDestroy {
   protected readonly sending = signal(false);
   protected readonly sendError = signal(false);
   protected readonly attachment = signal<AttachmentState | null>(null);
+
+  // --- per-message actions (edit / delete / report) -------------------------------
+  // One message is being edited inline; its draft lives here rather than in the composer,
+  // so the composer draft is never at risk from a half-finished edit.
+  protected readonly editingId = signal<string | null>(null);
+  protected readonly editDraft = signal('');
+  protected readonly savingEdit = signal(false);
+  /** True when the last edit failed — the bubble stays open with the text intact. */
+  protected readonly editFailed = signal(false);
+  /** Message awaiting delete confirmation; null when no confirm panel is open. */
+  protected readonly confirmingDeleteId = signal<string | null>(null);
+  protected readonly deletingId = signal<string | null>(null);
+  /**
+   * Message the report dialog is filed against. Starts empty because ReportDialog's `target` is
+   * a required input and the dialog is rendered permanently; openReport() always sets it before
+   * the dialog can be opened, so the empty value is never the one reported.
+   */
+  protected readonly reportingId = signal('');
+  /** Inline banner copy for an action that failed; cleared by the next attempt. */
+  protected readonly actionError = signal<string | null>(null);
+
   private conversationId = '';
   private subscription: Subscription;
   private readonly destroyRef = inject(DestroyRef);
@@ -101,6 +124,10 @@ export class Thread implements OnDestroy {
 
   constructor() {
     this.subscription = this.realtime.message$.subscribe((m) => this.onPush(m));
+    this.subscription.add(this.realtime.messageEdited$.subscribe((m) => this.onEdited(m)));
+    this.subscription.add(
+      this.realtime.messageDeleted$.subscribe((p) => this.onDeleted(p.messageId)),
+    );
     this.subscription.add(
       this.realtime.resync$.subscribe((hub) => {
         if (hub === 'messaging' && this.conversationId) this.reloadLatest(this.conversationId);
@@ -320,6 +347,15 @@ export class Thread implements OnDestroy {
     this.error.set(null);
     this.notFound.set(false);
     this.sendError.set(false);
+    // Per-message action state is per-conversation too: leaving a confirm panel or an open
+    // editor behind would apply to the next thread's messages.
+    this.editingId.set(null);
+    this.editDraft.set('');
+    this.editFailed.set(false);
+    this.confirmingDeleteId.set(null);
+    this.deletingId.set(null);
+    this.reportingId.set('');
+    this.actionError.set(null);
     // Switching conversations abandons a pending upload: it belongs to the previous
     // thread's draft, and leaving it in the slot would attach it to the wrong message.
     if (this.attachment()) this.removeAttachment();
@@ -358,10 +394,144 @@ export class Thread implements OnDestroy {
       });
   }
 
+  // --- edit ---------------------------------------------------------------------------
+
+  /** Only the text is editable, and only on a message that has some. */
+  protected canEdit(m: MessageResponse): boolean {
+    return this.isMine(m) && m.content !== null;
+  }
+
+  protected startEdit(m: MessageResponse): void {
+    this.confirmingDeleteId.set(null);
+    this.actionError.set(null);
+    this.editingId.set(m.id);
+    this.editDraft.set(m.content ?? '');
+    this.editFailed.set(false);
+  }
+
+  protected onEditDraft(event: Event): void {
+    this.editDraft.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  protected cancelEdit(): void {
+    this.editingId.set(null);
+    this.editDraft.set('');
+    this.editFailed.set(false);
+  }
+
+  /**
+   * Optimistic: the bubble shows the new wording immediately and rolls back on failure. The
+   * server's response replaces it, so what survives is the trimmed text rather than the
+   * draft. A failed edit keeps the editor open — closing it would discard the user's typing
+   * for a problem they can fix and retry.
+   */
+  protected saveEdit(messageId: string, previous: MessageResponse): void {
+    const content = this.editDraft().trim();
+    if (!content || this.savingEdit()) return;
+
+    const optimistic: MessageResponse = { ...previous, content };
+    this.upsert(optimistic);
+    this.savingEdit.set(true);
+    this.editFailed.set(false);
+
+    const conversationId = this.conversationId;
+    this.messaging
+      .editMessage(conversationId, messageId, content)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (saved) => {
+          this.upsert(saved);
+          this.cancelEdit();
+          this.savingEdit.set(false);
+        },
+        error: () => {
+          this.upsert(previous);
+          this.editFailed.set(true);
+          this.savingEdit.set(false);
+        },
+      });
+  }
+
+  // --- delete -------------------------------------------------------------------------
+
+  protected askDelete(messageId: string): void {
+    this.editingId.set(null);
+    this.actionError.set(null);
+    this.confirmingDeleteId.set(messageId);
+  }
+
+  protected cancelDelete(): void {
+    this.confirmingDeleteId.set(null);
+  }
+
+  /**
+   * Removed from the list on success, not before. A delete is irreversible and the text is
+   * gone server-side, so an optimistic removal that failed would leave the user believing
+   * they had erased something they had not.
+   */
+  protected confirmDelete(messageId: string): void {
+    if (this.deletingId()) return;
+    this.deletingId.set(messageId);
+
+    this.messaging
+      .deleteMessage(this.conversationId, messageId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.messages.update((current) => current.filter((m) => m.id !== messageId));
+          this.confirmingDeleteId.set(null);
+          this.deletingId.set(null);
+        },
+        // Re-arm the confirm panel so the action stays retryable, and say why.
+        error: () => {
+          this.confirmingDeleteId.set(null);
+          this.deletingId.set(null);
+          this.actionError.set("Couldn't delete that message. Try again.");
+        },
+      });
+  }
+
+  // --- report -------------------------------------------------------------------------
+
+  protected openReport(messageId: string): void {
+    this.reportingId.set(messageId);
+  }
+
+  protected reportTarget(): ReportTarget {
+    return { kind: 'message', conversationId: this.conversationId, id: this.reportingId() };
+  }
+
   private onPush(m: MessageResponse): void {
     if (m.conversationId !== this.conversationId) return;
     this.merge([m]);
     this.markRead(m.conversationId);
+  }
+
+  /**
+   * An edit pushed from the other side (or from this user's second device). Applied in place
+   * by id rather than by refetching: the payload is the full message, so a whole page reload
+   * to change one word would be both slower and able to yank the view out from under a scroll.
+   */
+  private onEdited(m: MessageResponse): void {
+    if (m.conversationId !== this.conversationId) return;
+    this.upsert(m);
+    // An open editor holds a stale draft of the very message that changed underneath it.
+    if (this.editingId() === m.id) this.editDraft.set(m.content ?? '');
+  }
+
+  /** A delete pushed from the other side. There is no tombstone — the bubble just goes. */
+  private onDeleted(messageId: string): void {
+    // Ids are globally unique, so membership is the whole test: a delete for another
+    // conversation cannot match anything in this thread.
+    if (!this.messages().some((m) => m.id === messageId)) return;
+    this.messages.update((current) => current.filter((m) => m.id !== messageId));
+    if (this.editingId() === messageId) this.cancelEdit();
+    if (this.confirmingDeleteId() === messageId) this.confirmingDeleteId.set(null);
+  }
+
+  /** Replace a message we already hold with the server's current version. */
+  private upsert(updated: MessageResponse): void {
+    this.messages.update((current) => current.map((m) => (m.id === updated.id ? updated : m)));
   }
 
   /**

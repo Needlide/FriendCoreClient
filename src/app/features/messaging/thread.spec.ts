@@ -1,4 +1,5 @@
 import { HttpTestingController } from '@angular/common/http/testing';
+import { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { Subject, BehaviorSubject, of } from 'rxjs';
@@ -33,6 +34,7 @@ function message(
     status: 'Sent',
     createdAt: new Date().toISOString(),
     media,
+    editedAt: null,
   };
 }
 
@@ -44,8 +46,18 @@ const page1 = {
 describe('Thread', () => {
   let http: HttpTestingController;
   const pushes = new Subject<MessageResponse>();
+  const edits = new Subject<MessageResponse>();
+  const deletions = new Subject<{ messageId: string }>();
 
   beforeEach(async () => {
+    // The thread now hosts a ReportDialog, and jsdom implements <dialog> markup but not
+    // showModal()/close() — stub the two methods the component calls.
+    window.HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    window.HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+    };
     await configureAuthTestBed([Thread]);
     TestBed.overrideProvider(ActivatedRoute, {
       useValue: {
@@ -54,7 +66,12 @@ describe('Thread', () => {
       },
     });
     TestBed.overrideProvider(RealtimeService, {
-      useValue: { message$: pushes.asObservable(), resync$: new Subject().asObservable() },
+      useValue: {
+        message$: pushes.asObservable(),
+        messageEdited$: edits.asObservable(),
+        messageDeleted$: deletions.asObservable(),
+        resync$: new Subject().asObservable(),
+      },
     });
     http = TestBed.inject(HttpTestingController);
     TestBed.inject(AuthService).login({ username: 'alice', password: 'password123' }).subscribe();
@@ -69,17 +86,32 @@ describe('Thread', () => {
     return { fixture, el: fixture.nativeElement as HTMLElement };
   }
 
+  /** Opens the inline editor on the nth bubble and checks it was seeded with that message. */
+  function openEditor(fixture: ComponentFixture<Thread>, index: number, text: string): void {
+    const el = fixture.nativeElement as HTMLElement;
+    el.querySelectorAll('.bubble')
+      [index].querySelector<HTMLButtonElement>('.actions [role=menuitem]')!
+      .click();
+    fixture.detectChanges();
+    const box = el.querySelector<HTMLTextAreaElement>('.editor textarea')!;
+    expect(box.value).toBe(text);
+  }
+
   /** Latest page load always ends with a mark-read beacon (flushed here). */
   function loadLatest() {
     expectApi(http, '/conversations/c1/messages').flush(page1);
     expectApi(http, '/conversations/c1/read').flush(null);
   }
 
-  /** Bubble text excluding the timestamp — the time is metadata, not message content. */
+  /**
+   * Bubble text minus the bubble's chrome — timestamp, "edited" marker and the action menu.
+   * Those are metadata and affordances; only the message itself is what these tests assert on.
+   */
   function bubbleTexts(el: HTMLElement): (string | undefined)[] {
     return Array.from(el.querySelectorAll('.bubble')).map((bubble) => {
       const clone = bubble.cloneNode(true) as HTMLElement;
-      clone.querySelector('.sent-at')?.remove();
+      clone.querySelector('.meta')?.remove();
+      clone.querySelector('.actions')?.remove();
       return clone.textContent?.trim();
     });
   }
@@ -130,7 +162,7 @@ describe('Thread', () => {
     loadLatest();
     fixture.detectChanges();
 
-    const box = el.querySelector('textarea')!;
+    const box = el.querySelector<HTMLTextAreaElement>('.composer textarea')!;
     box.value = 'hey there';
     box.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -143,7 +175,7 @@ describe('Thread', () => {
     fixture.detectChanges();
 
     expect(el.textContent).toContain('hey there');
-    expect((el.querySelector('textarea') as HTMLTextAreaElement).value).toBe('');
+    expect((el.querySelector('.composer textarea') as HTMLTextAreaElement).value).toBe('');
   });
 
   it('merges a live push for this conversation, ignores others', () => {
@@ -203,8 +235,9 @@ describe('Thread', () => {
 
     expect(el.querySelector('fc-media-viewer')).not.toBeNull();
     expect(el.querySelector('img')?.getAttribute('src')).toBe('http://storage.test/small.webp');
-    // No empty <p> and no "Sent a file" filler.
-    expect(el.querySelector('.bubble p')).toBeNull();
+    // No empty body element and no "Sent a file" filler — the bubble is media plus chrome only.
+    expect(el.querySelector('.bubble fc-linkified-text')).toBeNull();
+    expect(el.querySelector('.bubble')?.textContent).not.toContain('Sent a');
   });
 
   it('uploads, then sends the image with no text at all', () => {
@@ -278,6 +311,219 @@ describe('Thread', () => {
       vi.useRealTimers();
     }
   });
+  // --- per-message actions ------------------------------------------------------------
+
+  it('offers edit and delete on your own messages, report only on theirs', () => {
+    const { fixture, el } = create();
+    loadLatest();
+    fixture.detectChanges();
+
+    const bubbles = el.querySelectorAll('.bubble');
+    const mine = bubbles[0]; // 'second' — oldest first
+    const theirs = bubbles[1]; // 'third'
+
+    const labels = (bubble: Element) =>
+      Array.from(bubble.querySelectorAll('.actions [role=menuitem]')).map((b) =>
+        b.textContent?.trim(),
+      );
+
+    expect(labels(mine)).toEqual(['Edit', 'Delete']);
+    // The server refuses a self-report, so it is never offered on your own bubble.
+    expect(labels(theirs)).toEqual(['Report']);
+  });
+
+  it('offers no edit on an attachment-only message', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/conversations/c1/messages').flush({
+      messages: [message('m1', 'me', null, media)],
+      nextCursor: null,
+    });
+    expectApi(http, '/conversations/c1/read').flush(null);
+    fixture.detectChanges();
+
+    // There is no text to rewrite, and the server refuses the whole edit for one.
+    const items = Array.from(el.querySelectorAll('.bubble .actions [role=menuitem]')).map((b) =>
+      b.textContent?.trim(),
+    );
+    expect(items).toEqual(['Delete']);
+  });
+
+  it('edits in place, showing the server response and closing the editor', () => {
+    const { fixture, el } = create();
+    loadLatest();
+    fixture.detectChanges();
+
+    openEditor(fixture, 0, 'second');
+    const box = el.querySelector<HTMLTextAreaElement>('.editor textarea')!;
+    box.value = 'second, corrected';
+    box.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    el.querySelector<HTMLButtonElement>('.editor-actions .fc-primary')!.click();
+    const req = http.expectOne((r) => r.url.endsWith('/conversations/c1/messages/m2'));
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ content: 'second, corrected' });
+    req.flush({ ...message('m2', 'me', 'second, corrected'), editedAt: new Date().toISOString() });
+    fixture.detectChanges();
+
+    expect(el.querySelector('.editor')).toBeNull();
+    expect(bubbleTexts(el)).toEqual(['second, corrected', 'third']);
+    // An edited message says so.
+    expect(el.querySelector('.bubble .edited')?.textContent).toContain('edited');
+  });
+
+  it('rolls the bubble back and keeps the editor open when an edit fails', () => {
+    const { fixture, el } = create();
+    loadLatest();
+    fixture.detectChanges();
+
+    openEditor(fixture, 0, 'second');
+    const box = el.querySelector<HTMLTextAreaElement>('.editor textarea')!;
+    box.value = 'will fail';
+    box.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('.editor-actions .fc-primary')!.click();
+
+    http
+      .expectOne((r) => r.url.endsWith('/conversations/c1/messages/m2'))
+      .flush([{ code: 'Messaging.MessageTooLong', description: 'Too long.' }], {
+        status: 400,
+        statusText: 'Bad Request',
+      });
+    fixture.detectChanges();
+
+    // The editor stays open with the typing intact, so the change can simply be retried.
+    expect(el.querySelector<HTMLTextAreaElement>('.editor textarea')!.value).toBe('will fail');
+    expect(el.querySelector('.editor-error')?.textContent).toContain("Couldn't save");
+
+    // And the bubble underneath was rolled back to the server's wording — closing the editor
+    // reveals it. Without the rollback this would read 'will fail' as if it had been saved.
+    el.querySelector<HTMLButtonElement>('.editor-actions .fc-secondary')!.click();
+    fixture.detectChanges();
+    expect(bubbleTexts(el)).toEqual(['second', 'third']);
+  });
+
+  it('requires confirmation before deleting, then drops the bubble', () => {
+    const { fixture, el } = create();
+    loadLatest();
+    fixture.detectChanges();
+
+    // Nothing is sent on opening the confirm panel — a misclick must not destroy a message.
+    el.querySelectorAll<HTMLButtonElement>('.bubble .actions [role=menuitem]')[1].click();
+    fixture.detectChanges();
+    http.expectNone((r) => r.method === 'DELETE');
+    expect(el.querySelector('.confirm')?.textContent).toContain('Delete this message?');
+
+    el.querySelector<HTMLButtonElement>('.confirm-actions .fc-danger')!.click();
+    const req = http.expectOne((r) => r.url.endsWith('/conversations/c1/messages/m2'));
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+    fixture.detectChanges();
+
+    expect(el.querySelector('.confirm')).toBeNull();
+    expect(bubbleTexts(el)).toEqual(['third']);
+  });
+
+  it('cancels a delete without sending anything', () => {
+    const { fixture, el } = create();
+    loadLatest();
+    fixture.detectChanges();
+
+    el.querySelectorAll<HTMLButtonElement>('.bubble .actions [role=menuitem]')[1].click();
+    fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('.confirm-actions .fc-secondary')!.click();
+    fixture.detectChanges();
+
+    http.expectNone((r) => r.method === 'DELETE');
+    expect(el.querySelector('.confirm')).toBeNull();
+    expect(bubbleTexts(el)).toEqual(['second', 'third']);
+  });
+
+  it('reports the bubble you chose, scoped to this conversation', () => {
+    const { fixture, el } = create();
+    loadLatest();
+    fixture.detectChanges();
+
+    // The dialog is rendered in the thread, so its optional note textarea exists; the
+    // per-bubble action menu is the only other textarea-less affordance.
+    el.querySelectorAll('.bubble')[1]
+      .querySelector<HTMLButtonElement>('.actions [role=menuitem]')!
+      .click();
+    fixture.detectChanges();
+
+    const dialog = el.querySelector<HTMLDialogElement>('fc-report-dialog dialog')!;
+    expect(dialog.open).toBe(true);
+    expect(el.querySelector('fc-report-dialog')).not.toBeNull();
+
+    // The target carries the conversation, which is what keeps the POST scoped.
+    const post = () =>
+      http.expectOne(
+        (r) => r.method === 'POST' && r.url.endsWith('/conversations/c1/messages/m3/report'),
+      );
+
+    const category = dialog.querySelector<HTMLInputElement>('input[type=radio]')!;
+    category.click();
+    fixture.detectChanges();
+    dialog.querySelector<HTMLButtonElement>('.actions .fc-primary')!.click();
+
+    post().flush(null);
+  });
+
+  it('applies a pushed edit to the message it names, without a refetch', () => {
+    const { fixture, el } = create();
+    loadLatest();
+    fixture.detectChanges();
+
+    edits.next({
+      ...message('m3', 'bob', 'edited by the other side'),
+      editedAt: '2026-10-02T10:00:00Z',
+    });
+    fixture.detectChanges();
+
+    expect(bubbleTexts(el)).toEqual(['second', 'edited by the other side']);
+    // The push carries the whole message, so the cheapest correct response is to apply it.
+    http.expectNone((r) => r.url.endsWith('/conversations/c1/messages') && r.method === 'GET');
+  });
+
+  it('ignores an edit pushed for another conversation', () => {
+    const { fixture, el } = create();
+    loadLatest();
+    fixture.detectChanges();
+
+    edits.next({
+      ...message('m3', 'bob', 'from another thread'),
+      conversationId: 'c9',
+      editedAt: '2026-10-02T10:00:00Z',
+    });
+    fixture.detectChanges();
+
+    expect(bubbleTexts(el)).toEqual(['second', 'third']);
+  });
+
+  it('drops a bubble when a delete is pushed from the other side', () => {
+    const { fixture, el } = create();
+    loadLatest();
+    fixture.detectChanges();
+
+    deletions.next({ messageId: 'm2' });
+    fixture.detectChanges();
+
+    expect(bubbleTexts(el)).toEqual(['third']);
+  });
+
+  it('closes an open editor when the message it was editing is deleted', () => {
+    const { fixture, el } = create();
+    loadLatest();
+    fixture.detectChanges();
+
+    openEditor(fixture, 0, 'second');
+    deletions.next({ messageId: 'm2' });
+    fixture.detectChanges();
+
+    // Editing a message that no longer exists would 404 on save.
+    expect(el.querySelector('.editor')).toBeNull();
+    expect(bubbleTexts(el)).toEqual(['third']);
+  });
 });
 
 /**
@@ -288,16 +534,31 @@ describe('Thread', () => {
 describe('Thread conversation switching', () => {
   let http: HttpTestingController;
   const pushes = new Subject<unknown>();
+  const edits = new Subject<MessageResponse>();
+  const deletions = new Subject<{ messageId: string }>();
   let paramMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
 
   beforeEach(async () => {
+    // The thread now hosts a ReportDialog, and jsdom implements <dialog> markup but not
+    // showModal()/close() — stub the two methods the component calls.
+    window.HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    window.HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+    };
     await configureAuthTestBed([Thread]);
     paramMap$ = new BehaviorSubject(convertToParamMap({ id: 'c1' }));
     TestBed.overrideProvider(ActivatedRoute, {
       useValue: { paramMap: paramMap$, snapshot: { paramMap: paramMap$.value } },
     });
     TestBed.overrideProvider(RealtimeService, {
-      useValue: { message$: pushes.asObservable(), resync$: new Subject().asObservable() },
+      useValue: {
+        message$: pushes.asObservable(),
+        messageEdited$: edits.asObservable(),
+        messageDeleted$: deletions.asObservable(),
+        resync$: new Subject().asObservable(),
+      },
     });
     http = TestBed.inject(HttpTestingController);
     TestBed.inject(AuthService).login({ username: 'alice', password: 'password123' }).subscribe();

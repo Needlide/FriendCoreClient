@@ -29,21 +29,107 @@
 
     <ul class="messages" role="log" aria-live="polite" aria-label="Messages">
       @for (m of messages(); track m.id) {
-        <li class="bubble" [class.mine]="isMine(m)">
-          @if (m.media; as media) {
-            <fc-media-viewer [media]="media" [compact]="true" />
+        <li class="bubble" [class.mine]="isMine(m)" [class.editing]="editingId() === m.id">
+          @if (editingId() === m.id) {
+            <div class="editor">
+              <label class="fc-sr-only" [for]="'edit-' + m.id">Edit your message</label>
+              <textarea
+                [id]="'edit-' + m.id"
+                rows="2"
+                [value]="editDraft()"
+                (input)="onEditDraft($event)"
+              ></textarea>
+              @if (editFailed()) {
+                <p class="editor-error" role="alert">
+                  Couldn't save. Your text is still here — try again.
+                </p>
+              }
+              <div class="editor-actions">
+                <button type="button" class="fc-secondary" (click)="cancelEdit()">Cancel</button>
+                <button
+                  type="button"
+                  class="fc-primary"
+                  [disabled]="savingEdit() || editDraft().trim().length === 0"
+                  (click)="saveEdit(m.id, m)"
+                >
+                  {{ savingEdit() ? 'Saving…' : 'Save' }}
+                </button>
+              </div>
+            </div>
+          } @else {
+            @if (m.media; as media) {
+              <fc-media-viewer [media]="media" [compact]="true" />
+            }
+            @if (m.content) {
+              <fc-linkified-text [text]="m.content" />
+            }
+            <p class="meta">
+              <time class="sent-at" [attr.datetime]="m.createdAt">{{
+                m.createdAt | relativeTime
+              }}</time>
+              @if (m.editedAt) {
+                <span class="edited">· edited</span>
+              }
+            </p>
+            <!-- Native <details>: free toggle + keyboard behaviour, and no focus-trap
+                 machinery for a two-item menu (same reasoning as block-mute-menu). -->
+            <details class="actions">
+              <summary [attr.aria-label]="'Actions for this message'">⋯</summary>
+              <div class="items" role="menu" aria-label="Actions for this message">
+                @if (canEdit(m)) {
+                  <button type="button" role="menuitem" (click)="startEdit(m)">Edit</button>
+                }
+                @if (isMine(m)) {
+                  <button type="button" role="menuitem" class="danger" (click)="askDelete(m.id)">
+                    Delete
+                  </button>
+                } @else {
+                  <!-- The server refuses a self-report, so the option is simply not offered
+                       on your own bubbles rather than offered and then rejected. -->
+                  <button
+                    type="button"
+                    role="menuitem"
+                    (click)="openReport(m.id); reportDialog.open()"
+                  >
+                    Report
+                  </button>
+                }
+              </div>
+            </details>
           }
-          @if (m.content) {
-            <fc-linkified-text [text]="m.content" />
+
+          @if (confirmingDeleteId() === m.id) {
+            <div
+              class="confirm"
+              role="alertdialog"
+              aria-labelledby="delete-confirm-h"
+              aria-describedby="delete-confirm-d"
+            >
+              <p id="delete-confirm-h"><strong>Delete this message?</strong></p>
+              <p id="delete-confirm-d">It disappears for both of you and can't be brought back.</p>
+              <div class="confirm-actions">
+                <button type="button" class="fc-secondary" (click)="cancelDelete()">Cancel</button>
+                <button
+                  type="button"
+                  class="fc-danger"
+                  [disabled]="deletingId() === m.id"
+                  (click)="confirmDelete(m.id)"
+                >
+                  {{ deletingId() === m.id ? 'Deleting…' : 'Delete' }}
+                </button>
+              </div>
+            </div>
           }
-          <time class="sent-at" [attr.datetime]="m.createdAt">{{
-            m.createdAt | relativeTime
-          }}</time>
         </li>
       } @empty {
         <li class="empty">No messages yet — say hi.</li>
       }
     </ul>
+    <fc-report-dialog #reportDialog [target]="reportTarget()" />
+
+    @if (actionError(); as message) {
+      <p class="send-error" role="alert">{{ message }}</p>
+    }
 
     @if (sendError()) {
       <p class="send-error" role="alert">Couldn't send. Your text is still here — try again.</p>

@@ -51,6 +51,14 @@ export const REPORT_CATEGORIES = [
 
 export type ReportCategory = (typeof REPORT_CATEGORIES)[number]['value'];
 
-/** Where a report is filed — the dialog takes one of these targets. */
+/**
+ * Where a report is filed — the dialog takes one of these targets.
+ *
+ * A message needs its conversation id alongside the message id: the report route is
+ * conversation-scoped, which is what keeps a guessed message id a 404.
+ */
 export type ReportTarget =
-  { kind: 'post'; id: string } | { kind: 'user'; username: string } | { kind: 'media'; id: string };
+  | { kind: 'post'; id: string }
+  | { kind: 'user'; username: string }
+  | { kind: 'media'; id: string }
+  | { kind: 'message'; conversationId: string; id: string };

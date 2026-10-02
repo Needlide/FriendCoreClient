@@ -51,4 +51,28 @@ export class MessagingService {
   markRead(id: string): Observable<void> {
     return this.api.post<void>(ConversationsEndpoints.markRead(id));
   }
+
+  /**
+   * Rewrites the text of one of your own messages. Returns the server's version so the bubble
+   * shows the trimmed result rather than echoing the draft back. The server refuses an
+   * attachment-only message outright, so the client hides the affordance there instead.
+   */
+  editMessage(
+    conversationId: string,
+    messageId: string,
+    content: string,
+  ): Observable<MessageResponse> {
+    return this.api.patch<MessageResponse>(
+      ConversationsEndpoints.message(conversationId, messageId),
+      { content },
+    );
+  }
+
+  /**
+   * Soft-deletes one of your own messages. The text is scrubbed and the message drops out of
+   * the thread for both participants — nothing comes back to render.
+   */
+  deleteMessage(conversationId: string, messageId: string): Observable<void> {
+    return this.api.delete<void>(ConversationsEndpoints.message(conversationId, messageId));
+  }
 }

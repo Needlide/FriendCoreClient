@@ -86,6 +86,11 @@ export const ConversationsEndpoints = {
   /** Find-or-create the 1:1 with the admin support inbox (no body). */
   support: '/conversations/support',
   messages: (id: string) => `/conversations/${id}/messages`,
+  /** Scoped by conversation so a guessed message id is a 404, not a cross-thread write. */
+  message: (conversationId: string, messageId: string) =>
+    `/conversations/${conversationId}/messages/${messageId}`,
+  reportMessage: (conversationId: string, messageId: string) =>
+    `/conversations/${conversationId}/messages/${messageId}/report`,
   markRead: (id: string) => `/conversations/${id}/read`,
 } as const;
 
