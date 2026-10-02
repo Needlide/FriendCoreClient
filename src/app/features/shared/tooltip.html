@@ -1,0 +1,16 @@
+<button
+  type="button"
+  class="trigger"
+  [attr.aria-label]="label()"
+  [attr.aria-expanded]="visible()"
+  aria-describedby="{{ visible() ? tooltipId : null }}"
+  (click)="togglePinned($event)"
+>
+  <span aria-hidden="true">?</span>
+</button>
+
+@if (visible()) {
+  <!-- role="tooltip" + aria-describedby on the trigger is the pairing assistive tech expects;
+       it is not a live region, so it is announced as a description rather than interrupting. -->
+  <span class="bubble" role="tooltip" [id]="tooltipId">{{ text() }}</span>
+}

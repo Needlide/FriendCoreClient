@@ -15,9 +15,26 @@ import {
   UploadProgress,
 } from '../../core/models/posts.models';
 import { TagInput } from '../tags/tag-input';
+import { Tooltip } from '../shared/tooltip';
 import { AuthError } from '../auth/ui/auth-error';
 import { FeedService } from './feed.service';
 import { MediaService } from './media.service';
+
+/**
+ * The explanation behind BOTH safety checkboxes. One string for both, deliberately: the two
+ * flags are not two features. `MediaViewer.flagged` fires on `hasFlashingWarning ||
+ * hasIntenseMotionWarning`, so ticking either produces exactly the same behaviour for the
+ * reader, and copy that implied otherwise would be inventing a difference.
+ *
+ * The wording is kept honest about the limits — this is the creator's own declaration
+ * (spec §7.4 layer 1 of three), it does not hide the image from everyone, and it does not
+ * stop a moderator or another user from flagging it independently.
+ */
+const SAFETY_FLAG_HELP =
+  'People who have turned on "Hide flashing media" in Settings will see a ' +
+  'warning placeholder instead of this image, and the file is not loaded at all ' +
+  'until they choose to show it. Everyone else sees it normally — this is your own ' +
+  'declaration, and a moderator can still flag the image independently.';
 
 type AttachmentState =
   | { kind: 'uploading'; percent: number; preview: string }
@@ -41,11 +58,14 @@ type AttachmentState =
  */
 @Component({
   selector: 'fc-composer',
-  imports: [ReactiveFormsModule, TagInput, AuthError],
+  imports: [ReactiveFormsModule, TagInput, AuthError, Tooltip],
   templateUrl: './composer.html',
   styleUrl: './composer.scss',
 })
 export class Composer {
+  /** Exposed for the template so the copy lives beside the behaviour it describes. */
+  protected readonly SAFETY_FLAG_HELP = SAFETY_FLAG_HELP;
+
   private readonly feed = inject(FeedService);
   private readonly media = inject(MediaService);
   private readonly auth = inject(AuthService);

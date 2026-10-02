@@ -1,0 +1,64 @@
+:host {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+/* Small, quiet, and unmistakably interactive. 1.25rem is the floor here rather than a
+   16px glyph: it has to read as a target next to 14px label text without shouting. */
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--fc-text-muted);
+  background: none;
+  border: 1px solid var(--fc-border);
+  border-radius: 50%;
+  cursor: help;
+  transition:
+    color var(--fc-motion-fast) var(--fc-ease),
+    border-color var(--fc-motion-fast) var(--fc-ease);
+}
+
+.trigger:hover,
+.trigger[aria-expanded='true'] {
+  color: var(--fc-text);
+  border-color: var(--fc-text-muted);
+}
+
+.bubble {
+  position: absolute;
+  z-index: 10;
+  /* Above and to the right of the trigger, so it clears the checkbox label it explains
+     rather than covering it — the label stays readable while the note is open. */
+  bottom: calc(100% + var(--fc-space-1));
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 16rem;
+  padding: var(--fc-space-2) var(--fc-space-3);
+  font-size: var(--fc-text-sm);
+  line-height: 1.45;
+  text-align: left;
+  /* The bubble is prose, not a message, so newlines in the copy are not meaningful. */
+  white-space: normal;
+  color: var(--fc-text);
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  box-shadow: var(--fc-shadow);
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trigger {
+    transition: none;
+  }
+}

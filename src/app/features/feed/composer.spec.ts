@@ -215,4 +215,48 @@ describe('Composer', () => {
     expect(req.request.body).toMatchObject({ mediaIds: ['m1'] });
     req.flush(createdPost);
   });
+
+  it('explains the safety flags with a tooltip that names the real consequence', () => {
+    const { fixture, el } = create();
+    const triggers = el.querySelectorAll('fc-tooltip .trigger');
+    // One per checkbox — a flag nobody can explain is a flag nobody understands.
+    expect(triggers.length).toBe(2);
+
+    triggers[0].dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+    fixture.detectChanges();
+    const bubble = el.querySelector('.bubble')!;
+
+    // The copy must match what MediaViewer actually does: gate on the reader's own
+    // "Hide flashing media" preference, and do not claim it hides the image from everyone.
+    expect(bubble.textContent).toContain('Hide flashing media');
+    expect(bubble.textContent).toContain('not loaded');
+    expect(bubble.textContent).toContain('Everyone else sees it normally');
+    expect(bubble.getAttribute('role')).toBe('tooltip');
+  });
+
+  it('sends both flags to the upload endpoint', () => {
+    const { fixture, el } = create();
+    writeText(el, 'with flags');
+    fixture.detectChanges();
+
+    const boxes = el.querySelectorAll<HTMLInputElement>('.checks input[type=checkbox]');
+    expect(boxes.length).toBe(2);
+    boxes[0].checked = true;
+    boxes[0].dispatchEvent(new Event('change'));
+    boxes[1].checked = true;
+    boxes[1].dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const file = new File(['x'], 'a.png', { type: 'image/png' });
+    const input = el.querySelector<HTMLInputElement>('#composer-file')!;
+    Object.defineProperty(input, 'files', { value: [file] });
+    input.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    // Multipart, so the flags are FormData fields with the API's PascalCase names.
+    const upload = expectApi(http, '/media');
+    const form = upload.request.body as FormData;
+    expect(form.get('HasFlashingWarning')).toBe('true');
+    expect(form.get('HasIntenseMotionWarning')).toBe('true');
+  });
 });

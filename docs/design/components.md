@@ -207,6 +207,26 @@ Decorative when adjacent to explanatory text; use `aria-label` if standalone sta
 
 ---
 
+### Tooltip
+
+| **Figma** | `Tooltip` |
+| **Angular** | `fc-tooltip` |
+| **Anatomy** | trigger (circular `?` button), bubble |
+| **Variants** | light / dark scheme only; max-width 16rem |
+| **Behaviour** | Opens on hover or keyboard focus. Click **pins** it open (the only route in on touch, where hover does not exist). Closes on Escape, on the trigger, or on a click outside. **No auto-dismiss timer** — a timed expiry would hide the text while someone is still reading it. |
+| **Used by** | composer's media-safety checkboxes |
+
+| A11y | Requirement |
+|---|---|
+| Role | `role="tooltip"` on the bubble, referenced by `aria-describedby` on the trigger |
+| Label | Trigger is a real `<button>` with `aria-label`; `aria-expanded` reflects open state |
+| Hoverable | Hover handlers sit on the **host**, not the trigger, so moving the pointer onto the bubble never crosses a boundary |
+| Dismissible | Escape, the trigger, or any click outside |
+| Keyboard | Focus opens it; Space/Enter toggles the pin |
+| Motion | No transitions under reduced-motion |
+
+---
+
 ### Toast
 
 | **Figma** | `Toast` |
