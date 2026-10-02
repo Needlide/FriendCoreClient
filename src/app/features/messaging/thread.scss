@@ -48,6 +48,21 @@
   text-decoration: underline;
 }
 
+/* The bubble sets pre-line for message text; the timestamp is not message text,
+   so it opts back out or the template's own indentation would render as newlines. */
+.sent-at {
+  display: block;
+  white-space: normal;
+  margin-top: var(--fc-space-1);
+  font-size: var(--fc-text-sm);
+  color: var(--fc-text-muted);
+}
+
+.bubble.mine .sent-at {
+  color: inherit;
+  opacity: 0.75;
+}
+
 .empty {
   color: var(--fc-text-muted);
   text-align: center;

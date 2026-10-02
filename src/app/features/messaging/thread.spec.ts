@@ -75,12 +75,40 @@ describe('Thread', () => {
     expectApi(http, '/conversations/c1/read').flush(null);
   }
 
+  /** Bubble text excluding the timestamp — the time is metadata, not message content. */
+  function bubbleTexts(el: HTMLElement): (string | undefined)[] {
+    return Array.from(el.querySelectorAll('.bubble')).map((bubble) => {
+      const clone = bubble.cloneNode(true) as HTMLElement;
+      clone.querySelector('.sent-at')?.remove();
+      return clone.textContent?.trim();
+    });
+  }
+
   it('displays oldest-first and marks the thread read on open', () => {
     const { fixture, el } = create();
     loadLatest();
     fixture.detectChanges();
-    const bubbles = Array.from(el.querySelectorAll('.bubble')).map((b) => b.textContent?.trim());
-    expect(bubbles).toEqual(['second', 'third']);
+    expect(bubbleTexts(el)).toEqual(['second', 'third']);
+  });
+
+  it('stamps every bubble with its sent time', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/conversations/c1/messages').flush({
+      messages: [
+        {
+          ...message('m3', 'bob', 'third'),
+          createdAt: new Date(Date.now() - 7200_000).toISOString(),
+        },
+      ],
+      nextCursor: null,
+    });
+    expectApi(http, '/conversations/c1/read').flush(null);
+    fixture.detectChanges();
+
+    const times = Array.from(el.querySelectorAll('.sent-at')).map((t) => t.textContent?.trim());
+    expect(times).toEqual(['2 hours ago']);
+    // The exact instant stays machine-readable for assistive tech and tooltips.
+    expect(el.querySelector('.sent-at')?.getAttribute('datetime')).toBeTruthy();
   });
 
   it('prepends older pages above without disturbing the new ones', () => {
@@ -94,8 +122,7 @@ describe('Thread', () => {
     older.flush({ messages: [message('m1', 'bob', 'first')], nextCursor: null });
     fixture.detectChanges();
 
-    const bubbles = Array.from(el.querySelectorAll('.bubble')).map((b) => b.textContent?.trim());
-    expect(bubbles).toEqual(['first', 'second', 'third']);
+    expect(bubbleTexts(el)).toEqual(['first', 'second', 'third']);
   });
 
   it('sends from the POST response, keeps the text on failure', () => {

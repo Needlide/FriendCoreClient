@@ -24,6 +24,7 @@ import {
   UploadProgress,
 } from '../../core/models/posts.models';
 import { MediaViewer } from '../feed/media-viewer';
+import { RelativeTimePipe } from '../feed/relative-time.pipe';
 import { AuthError } from '../auth/ui/auth-error';
 import { MessagingService } from './messaging.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
@@ -69,7 +70,7 @@ type AttachmentState =
  */
 @Component({
   selector: 'fc-thread',
-imports: [AuthError, MediaViewer, LinkifiedText],
+  imports: [AuthError, MediaViewer, LinkifiedText, RelativeTimePipe],
   templateUrl: './thread.html',
   styleUrl: './thread.scss',
 })
