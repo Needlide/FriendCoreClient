@@ -46,9 +46,13 @@
     >
       {{ isLiked() ? '♥' : '♡' }} {{ likeCount() }}
     </button>
-    <span class="comments" aria-label="{{ post().commentCount }} comments">
+    <a
+      class="comments"
+      [routerLink]="['/posts', post().id]"
+      [attr.aria-label]="post().commentCount + ' comments — open post'"
+    >
       💬 {{ post().commentCount }}
-    </span>
+    </a>
     <button
       type="button"
       class="report-link"
@@ -56,6 +60,14 @@
       (click)="openReport(reportDialog)"
     >
       Report
+    </button>
+    <button
+      type="button"
+      class="share-link"
+      [attr.aria-label]="'Copy link to this post'"
+      (click)="copyLink()"
+    >
+      {{ copied() ? 'Copied ✓' : 'Copy link' }}
     </button>
   </footer>
   <fc-report-dialog #reportDialog [target]="reportTarget()" />

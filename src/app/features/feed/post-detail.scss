@@ -1,0 +1,139 @@
+.detail-page {
+  max-width: var(--fc-content-max);
+  margin: 0 auto;
+  padding: var(--fc-space-4);
+  display: grid;
+  gap: var(--fc-space-4);
+  align-content: start;
+}
+
+.back {
+  color: var(--fc-text-muted);
+  text-decoration: none;
+  justify-self: start;
+}
+
+.comments {
+  display: grid;
+  gap: var(--fc-space-3);
+}
+
+.comments h2 {
+  margin: 0;
+  font-size: var(--fc-text-lg);
+}
+
+.comments ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--fc-space-2);
+}
+
+.comment {
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-3) var(--fc-space-4);
+  display: grid;
+  gap: var(--fc-space-1);
+}
+
+.comment .who {
+  display: flex;
+  gap: var(--fc-space-2);
+  align-items: baseline;
+  font-size: var(--fc-text-sm);
+}
+
+.comment .who a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.comment .who a:hover {
+  text-decoration: underline;
+}
+
+.comment .who time {
+  color: var(--fc-text-muted);
+}
+
+.comment-body {
+  display: block;
+  overflow-wrap: break-word;
+  white-space: pre-line;
+}
+
+.comment-body a {
+  color: var(--fc-accent);
+}
+
+.danger-ghost {
+  font: inherit;
+  font-size: var(--fc-text-sm);
+  border: 0;
+  background: none;
+  color: var(--fc-danger);
+  cursor: pointer;
+  justify-self: start;
+  padding: var(--fc-space-1) 0;
+}
+
+.muted {
+  color: var(--fc-text-muted);
+}
+
+form {
+  display: grid;
+  gap: var(--fc-space-2);
+}
+
+textarea {
+  font: inherit;
+  color: var(--fc-text);
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  padding: var(--fc-space-2) var(--fc-space-3);
+  resize: vertical;
+}
+
+.fc-primary,
+.fc-secondary {
+  font: inherit;
+  font-weight: 600;
+  min-height: 2.5rem;
+  padding: 0 var(--fc-space-4);
+  border-radius: var(--fc-radius-sm);
+  cursor: pointer;
+  justify-self: start;
+}
+
+.fc-primary {
+  border: 0;
+  background: var(--fc-accent);
+  color: var(--fc-accent-contrast);
+}
+
+.fc-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fc-secondary {
+  border: 1px solid var(--fc-border);
+  background: var(--fc-surface);
+  color: var(--fc-text);
+}
+
+.fc-secondary:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.state {
+  text-align: center;
+}

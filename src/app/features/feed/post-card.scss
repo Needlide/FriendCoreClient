@@ -107,6 +107,7 @@
 .comments {
   color: var(--fc-text-muted);
   font-size: var(--fc-text-sm);
+  text-decoration: none;
 }
 
 .report-link {
@@ -117,5 +118,15 @@
   color: var(--fc-text-muted);
   cursor: pointer;
   margin-left: auto;
+  padding: var(--fc-space-1) 0;
+}
+
+.share-link {
+  font: inherit;
+  font-size: var(--fc-text-sm);
+  border: 0;
+  background: none;
+  color: var(--fc-text-muted);
+  cursor: pointer;
   padding: var(--fc-space-1) 0;
 }

@@ -47,6 +47,19 @@ describe('PostCard', () => {
     expect(el.querySelector('.like')?.textContent).toContain('4');
   });
 
+  it('copies the post permalink to the clipboard', () => {
+    const { fixture, el } = create();
+    const written: string[] = [];
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: { writeText: (text: string) => (written.push(text), Promise.resolve()) },
+      configurable: true,
+    });
+    el.querySelector<HTMLButtonElement>('.share-link')!.click();
+    fixture.detectChanges();
+    expect(written).toEqual([`${window.location.origin}/posts/p1`]);
+    expect(el.querySelector('.share-link')?.textContent).toContain('Copied');
+  });
+
   it('flips the like optimistically and keeps it on success', () => {
     const { fixture, el } = create();
     el.querySelector<HTMLButtonElement>('.like')!.click();

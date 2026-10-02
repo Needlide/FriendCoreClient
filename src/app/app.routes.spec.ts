@@ -37,6 +37,7 @@ describe('app.routes', () => {
       'settings/account',
       'messages',
       'messages/:id',
+      'posts/:id',
       'notifications',
       'help',
     ]) {

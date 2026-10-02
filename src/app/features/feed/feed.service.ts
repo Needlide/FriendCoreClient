@@ -1,8 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClient } from '../../core/api/api-client';
-import { FeedEndpoints, PostsEndpoints } from '../../core/config/endpoints';
-import { CreatePostRequest, Post, PostFeedResponse } from '../../core/models/posts.models';
+import { CommentsEndpoints, FeedEndpoints, PostsEndpoints } from '../../core/config/endpoints';
+import {
+  CommentFeedResponse,
+  CreatePostRequest,
+  Post,
+  PostComment,
+  PostFeedResponse,
+} from '../../core/models/posts.models';
 
 /**
  * Feed + post transport. Pagination state lives in the feed component (cursor in,
@@ -34,5 +40,23 @@ export class FeedService {
 
   deletePost(id: string): Observable<void> {
     return this.api.delete<void>(PostsEndpoints.byId(id));
+  }
+
+  getPost(id: string): Observable<Post> {
+    return this.api.get<Post>(PostsEndpoints.byId(id));
+  }
+
+  getComments(postId: string, cursor?: string | null): Observable<CommentFeedResponse> {
+    return this.api.get<CommentFeedResponse>(PostsEndpoints.comments(postId), {
+      params: cursor ? { cursor } : {},
+    });
+  }
+
+  addComment(postId: string, content: string): Observable<PostComment> {
+    return this.api.post<PostComment>(PostsEndpoints.comments(postId), { content });
+  }
+
+  deleteComment(commentId: string): Observable<void> {
+    return this.api.delete<void>(CommentsEndpoints.byId(commentId));
   }
 }

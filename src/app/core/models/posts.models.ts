@@ -58,6 +58,22 @@ export interface MediaUploadResponse {
   status: string; // Processing
 }
 
+/** Comment shapes (GET/POST /posts/{id}/comments). */
+export interface PostComment {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorUsername: string;
+  authorDisplayName: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface CommentFeedResponse {
+  comments: PostComment[];
+  nextCursor: string | null;
+}
+
 /** Bytes-sent progress emitted by the upload event stream (0–100). */
 export interface UploadProgress {
   percent: number;

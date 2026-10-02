@@ -78,6 +78,37 @@ export class PostCard {
     });
   }
 
+  /** Copies the permalink. Clipboard API with a legacy fallback (non-secure contexts). */
+  protected readonly copied = signal(false);
+
+  protected copyLink(): void {
+    const url = `${window.location.origin}/posts/${this.post().id}`;
+    const done = () => {
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(done, () => this.legacyCopy(url, done));
+    } else {
+      this.legacyCopy(url, done);
+    }
+  }
+
+  private legacyCopy(url: string, done: () => void): void {
+    const area = document.createElement('textarea');
+    area.value = url;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    try {
+      document.execCommand('copy');
+    } finally {
+      document.body.removeChild(area);
+    }
+    done();
+  }
+
   protected reportTarget(): ReportTarget {
     return { kind: 'post', id: this.post().id };
   }

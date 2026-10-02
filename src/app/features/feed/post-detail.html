@@ -1,0 +1,67 @@
+<div class="detail-page">
+  <a class="back" routerLink="/">← Home</a>
+
+  @if (loading()) {
+    <p role="status">Loading…</p>
+  } @else if (notFound()) {
+    <section class="state" aria-labelledby="nf-h">
+      <h1 id="nf-h">Post not found</h1>
+      <p>It may have been deleted, or you may no longer have access to it.</p>
+      <a routerLink="/">Back home</a>
+    </section>
+  } @else if (error()) {
+    <fc-auth-error [error]="error()" context="generic" />
+  } @else if (post(); as p) {
+    <fc-post-card [post]="p" [canDelete]="isSelf()" (deleted)="dropPost()" />
+
+    <section class="comments" aria-labelledby="comments-h">
+      <h2 id="comments-h">Comments</h2>
+
+      @if (nextCursor() !== null && nextCursor() !== undefined) {
+        <button
+          type="button"
+          class="fc-secondary"
+          [disabled]="loadingOlder()"
+          (click)="loadOlder()"
+        >
+          {{ loadingOlder() ? 'Loading…' : 'Load older' }}
+        </button>
+      }
+
+      @if (comments().length === 0) {
+        <p class="muted">No comments yet — start the discussion.</p>
+      } @else {
+        <ul>
+          @for (c of comments(); track c.id) {
+            <li class="comment">
+              <div class="who">
+                <a [routerLink]="['/u', c.authorUsername]">{{ c.authorDisplayName }}</a>
+                <time [attr.datetime]="c.createdAt">{{ c.createdAt | relativeTime }}</time>
+              </div>
+              <fc-linkified-text class="comment-body" [text]="c.content" />
+              @if (isOwnComment(c)) {
+                <button type="button" class="danger-ghost" (click)="deleteComment(c.id)">
+                  Delete
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="addComment()" novalidate aria-label="Add a comment">
+        <label class="fc-sr-only" for="comment-box">Write a comment</label>
+        <textarea
+          id="comment-box"
+          rows="2"
+          maxlength="500"
+          placeholder="Write a comment… (max 500)"
+          formControlName="content"
+        ></textarea>
+        <button type="submit" class="fc-primary" [disabled]="sending() || form.invalid">
+          {{ sending() ? 'Sending…' : 'Comment' }}
+        </button>
+      </form>
+    </section>
+  }
+</div>

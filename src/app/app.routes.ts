@@ -73,6 +73,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/messaging/thread').then((m) => m.Thread),
       },
       {
+        path: 'posts/:id',
+        loadComponent: () => import('./features/feed/post-detail').then((m) => m.PostDetail),
+      },
+      {
         path: 'notifications',
         loadComponent: () =>
           import('./features/notifications/notifications').then((m) => m.Notifications),

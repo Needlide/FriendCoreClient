@@ -134,7 +134,7 @@ Components: [`components.md`](components.md) · Copy rules: [`content-and-a11y.m
 
 ---
 
-## 4. Post detail (optional MVP — if linked from feed)
+## 4. Post detail (built — linked from feed via the comment count)
 
 | | |
 |---|---|

@@ -57,6 +57,11 @@ export const PostsEndpoints = {
   posts: '/posts',
   byId: (id: string) => `/posts/${id}`,
   like: (id: string) => `/posts/${id}/like`,
+  comments: (id: string) => `/posts/${id}/comments`,
+} as const;
+
+export const CommentsEndpoints = {
+  byId: (id: string) => `/comments/${id}`,
 } as const;
 
 /** Media routes, relative to /api/v1. */
