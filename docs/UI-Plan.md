@@ -158,6 +158,15 @@ Safety self-declaration (post composer + DM composer) is one shared
 `fc-safety-declaration`, shown only in the no-attachment state — the flags ride
 with the upload request, so it must be ticked *before* a file is chosen.
 
+**The placeholder is server-driven.** Flagged media arrives with an empty
+`variants` array — the API withholds the URLs on every surface — so
+`MediaViewer` shows "Sensitive media" because there is nothing to render, not
+because it read a flag. Consent is `POST /media/{id}/reveal`, authorized
+server-side against the attachment. Readers who turned "Hide flashing media"
+**off** are auto-consented rather than prompted; a refusal renders "Media
+unavailable" and is not retryable. Consequence: a client bug now yields a broken
+image, never an unsafely-shown one.
+
 ---
 
 ## 3. Global rules (every screen)
