@@ -7,6 +7,7 @@ import { MediaEndpoints } from '../../core/config/endpoints';
 import {
   MediaStatusResponse,
   MediaUploadResponse,
+  MediaVariant,
   UploadProgress,
 } from '../../core/models/posts.models';
 
@@ -50,6 +51,17 @@ export class MediaService {
           return { percent: 0 };
         }),
       );
+  }
+
+  /**
+   * Asks the server for a flagged image's variant URLs (§7.4). Flagged media ships with NO
+   * URLs at all, so this is the only way to render one — and the server decides whether this
+   * reader is entitled, based on what the media is attached to. Fails with 404 when not.
+   */
+  reveal(mediaId: string): Observable<{ mediaId: string; variants: MediaVariant[] }> {
+    return this.api.post<{ mediaId: string; variants: MediaVariant[] }>(
+      MediaEndpoints.revealMedia(mediaId),
+    );
   }
 
   /** GET /media/{id}/status — one shot; the composer polls it (see below). */

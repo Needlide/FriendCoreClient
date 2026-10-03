@@ -1,13 +1,32 @@
-import { Component, ElementRef, computed, inject, input, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  viewChild,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PostMedia } from '../../core/models/posts.models';
 import { PreferencesService } from '../../core/preferences/preferences.service';
+import { MediaVariant } from '../../core/models/posts.models';
+import { MediaService } from './media.service';
 
 /**
- * Renders one attached image. Safety rule (content-and-a11y.md §4, API §7.4):
- * when the user's HideFlashingMedia is on and the media carries a
- * flashing/intense-motion flag, render a placeholder and DO NOT set <img src>
- * until the user clicks "Show media" — the browser must never fetch (let alone
- * render) the bytes before explicit consent.
+ * Renders one attached image.
+ *
+ * The flashing / intense-motion gate (§7.4, content-and-a11y.md §4) is enforced by the
+ * SERVER: flagged media arrives with no variant URLs at all, so there is nothing to render
+ * until this component asks for them. That is deliberate — the old design shipped the flags
+ * and let each surface decide, so a surface that forgot would quietly serve the image with
+ * nothing to catch the miss. Here a missed gate degrades to a broken image.
+ *
+ * So the placeholder is not a local `if`: it is the absence of data. There is no <img src>
+ * until POST /media/{id}/reveal comes back authorized, so the browser never even requests
+ * the bytes before consent.
  *
  * Before preferences load, the service defaults to protected (placeholder) —
  * failing safe, never failing open.
@@ -31,19 +50,66 @@ import { PreferencesService } from '../../core/preferences/preferences.service';
 })
 export class MediaViewer {
   private readonly prefs = inject(PreferencesService);
+  private readonly mediaService = inject(MediaService);
+  private readonly destroyRef = inject(DestroyRef);
 
   media = input.required<PostMedia>();
   /** Tighter sizing for a chat bubble, where a feed-width image would dominate. */
   compact = input(false);
 
-  private readonly revealed = signal(false);
   private readonly lightbox = viewChild<ElementRef<HTMLDialogElement>>('lightbox');
 
-  protected readonly flagged = computed(
-    () =>
-      this.prefs.hideFlashingMedia() &&
-      (this.media().hasFlashingWarning || this.media().hasIntenseMotionWarning),
+  /** Variant URLs once the server has issued them; null until then for flagged media. */
+  private readonly granted = signal<MediaVariant[] | null>(null);
+  protected readonly revealing = signal(false);
+  /** Consent refused or failed — the image is gone, and saying so beats an endless spinner. */
+  protected readonly revealFailed = signal(false);
+
+  /** True while the server is withholding this image: flagged, and no URLs issued yet. */
+  protected readonly gated = computed(
+    () => this.media().variants.length === 0 && this.granted() === null,
   );
+
+  /** The URLs actually in hand — what came in the payload, plus anything granted later. */
+  private readonly variants = computed<MediaVariant[]>(
+    () => this.granted() ?? this.media().variants,
+  );
+
+  /**
+   * Auto-consent for a reader who has turned the protection OFF. They already decided in
+   * Settings, so re-asking per image would nag — and the request is still authorized
+   * server-side, so this is not the client choosing to serve a hazard.
+   */
+  private readonly autoReveal = effect(() => {
+    const media = this.media();
+    if (!this.gated() || this.prefs.hideFlashingMedia()) return;
+    this.requestReveal(media.id);
+  });
+
+  /** Consent, requested from the server. Never optimistic: there is no URL to show until the
+   *  server says this reader may have it, which is the entire point of the arrangement. */
+  protected reveal(): void {
+    this.requestReveal(this.media().id);
+  }
+
+  private requestReveal(mediaId: string): void {
+    if (this.revealing() || this.revealFailed()) return;
+    this.revealing.set(true);
+    this.mediaService
+      .reveal(mediaId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (granted) => {
+          this.granted.set(granted.variants);
+          this.revealing.set(false);
+        },
+        error: () => {
+          // 404 means the server declined: not entitled, or removed since.
+          this.revealing.set(false);
+          this.revealFailed.set(true);
+        },
+      });
+  }
 
   /** Inline source. Fallback chain in case the variant set is ever partial. */
   protected readonly src = computed(() => {
@@ -57,11 +123,7 @@ export class MediaViewer {
   protected readonly fullSrc = computed(() => this.pick('Large', 'Medium', 'Small', 'Thumbnail'));
 
   protected revealedNow(): boolean {
-    return !this.flagged() || this.revealed();
-  }
-
-  protected reveal(): void {
-    this.revealed.set(true);
+    return !this.gated();
   }
 
   protected open(): void {
@@ -78,7 +140,7 @@ export class MediaViewer {
   }
 
   private pick(...types: string[]): string {
-    const variants = this.media().variants;
+    const variants = this.variants();
     for (const type of types) {
       const found = variants.find((v) => v.type === type);
       if (found) return found.url;

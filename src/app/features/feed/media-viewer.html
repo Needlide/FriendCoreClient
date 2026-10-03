@@ -6,10 +6,20 @@
       <img [src]="src()" alt="Attached image" loading="lazy" />
     </button>
   } @else {
+    <!-- Shown because the server withheld the URLs, not because a local flag says so. -->
     <div class="placeholder" role="group" aria-label="Sensitive media warning">
-      <p class="title">Sensitive media</p>
-      <p class="body">This media may contain flashing lights or intense motion.</p>
-      <button type="button" (click)="reveal()">Show media</button>
+      @if (revealFailed()) {
+        <p class="title">Media unavailable</p>
+        <p class="body">
+          This image can't be shown to you. It may have been removed, or you may not have access.
+        </p>
+      } @else {
+        <p class="title">Sensitive media</p>
+        <p class="body">This media may contain flashing lights or intense motion.</p>
+        <button type="button" [disabled]="revealing()" (click)="reveal()">
+          {{ revealing() ? 'Loading…' : 'Show media' }}
+        </button>
+      }
     </div>
   }
 

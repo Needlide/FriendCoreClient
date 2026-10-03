@@ -82,20 +82,23 @@ describe('PostCard', () => {
   it('never loads flagged media before consent', () => {
     const { fixture, el } = create({
       ...base,
-      media: [
-        {
-          id: 'm1',
-          hasFlashingWarning: true,
-          hasIntenseMotionWarning: false,
-          variants: [{ type: 'Medium', url: 'https://cdn/x.webp', widthPx: 800, heightPx: 600 }],
-        },
-      ],
+      // Flagged media arrives with NO variants — the server withholds the URLs, so there is
+      // nothing to render and nothing for the browser to fetch. The card only shows an image
+      // after the reveal endpoint says this reader is entitled to one.
+      media: [{ id: 'm1', hasFlashingWarning: true, hasIntenseMotionWarning: false, variants: [] }],
     });
     // Placeholder only: no <img>, so the browser fetches nothing.
     expect(el.querySelector('img')).toBeNull();
     expect(el.textContent).toContain('Sensitive media');
+
     el.querySelector<HTMLButtonElement>('.placeholder button')!.click();
     fixture.detectChanges();
+    expectApi(http, '/media/m1/reveal').flush({
+      mediaId: 'm1',
+      variants: [{ type: 'Medium', url: 'https://cdn/x.webp', widthPx: 800, heightPx: 600 }],
+    });
+    fixture.detectChanges();
+
     expect(el.querySelector('img')?.getAttribute('src')).toBe('https://cdn/x.webp');
   });
 });

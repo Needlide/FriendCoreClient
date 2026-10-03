@@ -69,6 +69,9 @@ export const MediaEndpoints = {
   media: '/media',
   status: (id: string) => `/media/${id}/status`,
   byId: (id: string) => `/media/${id}`,
+  /** Consent step for flagged media (§7.4): the variant URLs, once the server has authorized
+   *  this reader. POST, not GET, so no prefetcher hands out the URLs before consent. */
+  revealMedia: (id: string) => `/media/${id}/reveal`,
 } as const;
 
 /** Notification routes, relative to /api/v1. */
