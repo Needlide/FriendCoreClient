@@ -2,6 +2,7 @@ import { HttpClient, HttpContext, HttpHeaders, HttpParams } from '@angular/commo
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { resolveApiBaseUrl } from '../config/api-base-url';
 
 interface RequestOptions {
   params?: HttpParams | Record<string, string | number | boolean>;
@@ -19,7 +20,16 @@ interface RequestOptions {
 @Injectable({ providedIn: 'root' })
 export class ApiClient {
   private readonly http = inject(HttpClient);
-  private readonly base = environment.apiBaseUrl + environment.apiPrefix;
+  /**
+   * Same-origin by default. An empty apiBaseUrl means "talk to whatever host served this page",
+   * which is what you want when the API serves the built SPA: one build then works from a LAN
+   * IP, a WireGuard address or a hostname, with no rebuild per environment — and no cross-origin
+   * request, so Cors:AllowedOrigins stops being a per-environment chore.
+   *
+   * Falls back to the configured base URL when set, so pointing a dev build at a remote API
+   * still works exactly as before.
+   */
+  private readonly base = resolveApiBaseUrl() + environment.apiPrefix;
 
   /** Absolute URL for a versioned API path. */
   url(path: string): string {

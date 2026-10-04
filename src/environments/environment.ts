@@ -4,12 +4,14 @@ import type { Environment } from './environment.model';
  * Default (production) environment. The development build replaces this file with
  * `environment.development.ts` via the `fileReplacements` entry in angular.json.
  *
- * Production assumes the recommended same-registrable-domain layout
- * (app.friendcore.com + api.friendcore.com) so the SameSite=Strict refresh cookie
- * and simple CORS keep working. See the integration guide §8 (Production notes).
+ * `apiBaseUrl: ''` means SAME-ORIGIN: requests go to whatever host served the page (see
+ * `resolveApiBaseUrl`). The intended production layout is one registrable domain serving both
+ * — app.friendcore.com with the API behind it, as `Spa:Path` does now — so this needs no
+ * per-environment rebuild and no CORS allowlist. Set it to an absolute URL to point a build at
+ * a different API host (the README's LAN-testing instructions do exactly that).
  */
 export const environment: Environment = {
   production: true,
-  apiBaseUrl: 'https://api.friendcore.com',
+  apiBaseUrl: '',
   apiPrefix: '/api/v1',
 };

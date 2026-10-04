@@ -7,6 +7,7 @@ import {
 } from '@microsoft/signalr';
 import { Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { resolveApiBaseUrl } from '../config/api-base-url';
 import { AuthService } from '../auth/auth.service';
 import { RealtimeHubs } from '../config/endpoints';
 import {
@@ -110,7 +111,9 @@ export class RealtimeService {
     };
 
     const connection = new HubConnectionBuilder()
-      .withUrl(environment.apiBaseUrl + path, options)
+      // Same origin as the page in a same-origin build, so one build works from any address
+      // the testers happen to use. Absolute either way — SignalR must negotiate a real origin.
+      .withUrl(resolveApiBaseUrl() + path, options)
       .withAutomaticReconnect()
       .configureLogging(environment.production ? LogLevel.Error : LogLevel.Information)
       .build();
