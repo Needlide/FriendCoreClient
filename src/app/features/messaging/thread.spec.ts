@@ -216,6 +216,7 @@ describe('Thread', () => {
     variants: [
       { type: 'Small', url: 'http://storage.test/small.webp', widthPx: 300, heightPx: 200 },
     ],
+    gateReason: null,
   };
 
   /** Picks a PNG and drives upload → Processing → Ready, the shared media path. */

@@ -76,15 +76,73 @@ export class MediaViewer {
   );
 
   /**
-   * Auto-consent for a reader who has turned the protection OFF. They already decided in
-   * Settings, so re-asking per image would nag — and the request is still authorized
-   * server-side, so this is not the client choosing to serve a hazard.
+   * Auto-consent for a reader who has already turned the relevant protection OFF.
+   *
+   * Which preference is relevant comes from the server's `gateReason`, not from the booleans:
+   * a photosensitivity hazard is governed by HideFlashingMedia, while intense motion is a
+   * vestibular nuisance governed by ReduceMotion. Asking about the wrong one would either nag
+   * someone who already opted out, or silently show motion to someone who asked for less of it.
+   *
+   * The request still goes to the server, so this is not the client choosing to serve a hazard —
+   * it is the client not asking a question that has already been answered.
    */
   private readonly autoReveal = effect(() => {
     const media = this.media();
-    if (!this.gated() || this.prefs.hideFlashingMedia()) return;
+    // gateReason must be present: without a stated hazard there is no basis for deciding the
+    // reader has already consented, so an unexplained empty payload gets no benefit of the doubt.
+    if (!this.gated() || !media.gateReason || !this.readerAcceptsGate(media.gateReason)) return;
     this.requestReveal(media.id);
   });
+
+  /**
+   * True when the reader has already answered this question, so re-asking would only nag.
+   *
+   * The two hazards are NOT symmetrical here, and getting that wrong is a privacy bug:
+   *
+   *  - Flashing is governed by HideFlashingMedia, which DEFAULTS TRUE. It is an opt-OUT
+   *    preference, so switching it off is a deliberate "show me anyway" and therefore consent.
+   *
+   *  - Intense motion has no such preference. ReduceMotion is about UI animation and
+   *    transitions, and it DEFAULTS FALSE — so reading "off" as consent would auto-reveal
+   *    motion to every reader by default, which is precisely the opposite of the protection.
+   *    Motion therefore always requires an explicit click until a real opt-out preference
+   *    exists (see the open question in docs/claude.md).
+   */
+  private readerAcceptsGate(reason: string | null): boolean {
+    if (!reason) return true; // nothing withheld, or the server did not say why
+    return reason.includes('Flashing') && !this.prefs.hideFlashingMedia();
+  }
+
+  /**
+   * What the reader is being asked to accept, in their terms. One reason at a time is easier to
+   * act on than the generic "flashing lights or intense motion" the old copy used for both —
+   * and it stops implying a seizure risk for an image that only moves.
+   */
+  protected gateTitle(): string {
+    switch (this.media().gateReason) {
+      case 'Flashing':
+        return 'Flashing lights';
+      case 'IntenseMotion':
+        return 'Fast movement';
+      case 'FlashingAndIntenseMotion':
+        return 'Flashing lights and fast movement';
+      default:
+        return 'Sensitive media';
+    }
+  }
+
+  protected gateBody(): string {
+    switch (this.media().gateReason) {
+      case 'Flashing':
+        return 'This image may contain flashing lights, which can trigger seizures.';
+      case 'IntenseMotion':
+        return 'This animation moves a lot, which can be uncomfortable.';
+      case 'FlashingAndIntenseMotion':
+        return 'This image may contain flashing lights and fast movement.';
+      default:
+        return 'This media may contain flashing lights or intense motion.';
+    }
+  }
 
   /** Consent, requested from the server. Never optimistic: there is no URL to show until the
    *  server says this reader may have it, which is the entire point of the arrangement. */

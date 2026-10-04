@@ -15,7 +15,19 @@ export interface PostMedia {
   id: string;
   hasFlashingWarning: boolean;
   hasIntenseMotionWarning: boolean;
+  /** Empty when the server withheld the URLs — see the gate note below. */
   variants: MediaVariant[];
+  /**
+   * Why the server withheld them: "Flashing" | "IntenseMotion" |
+   * "FlashingAndIntenseMotion", or null when nothing was withheld.
+   *
+   * The server names the hazard rather than leaving this client to work it out from the two
+   * booleans. That re-derivation is precisely what moving the gate server-side removed, so
+   * reintroducing it here for the *reason* would undo the point. It also resolves which
+   * preference applies: intense motion is gated on ReduceMotion, flashing on
+   * HideFlashingMedia, and only animated media (GIF) can be motion-gated at all.
+   */
+  gateReason: string | null;
 }
 
 export interface PostTag {

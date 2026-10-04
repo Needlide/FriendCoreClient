@@ -85,11 +85,20 @@ describe('PostCard', () => {
       // Flagged media arrives with NO variants — the server withholds the URLs, so there is
       // nothing to render and nothing for the browser to fetch. The card only shows an image
       // after the reveal endpoint says this reader is entitled to one.
-      media: [{ id: 'm1', hasFlashingWarning: true, hasIntenseMotionWarning: false, variants: [] }],
+      media: [
+        {
+          id: 'm1',
+          hasFlashingWarning: true,
+          hasIntenseMotionWarning: false,
+          variants: [],
+          gateReason: 'Flashing',
+        },
+      ],
     });
     // Placeholder only: no <img>, so the browser fetches nothing.
     expect(el.querySelector('img')).toBeNull();
-    expect(el.textContent).toContain('Sensitive media');
+    // Hazard-specific copy from the server's gateReason, not the old generic string.
+    expect(el.textContent).toContain('Flashing lights');
 
     el.querySelector<HTMLButtonElement>('.placeholder button')!.click();
     fixture.detectChanges();
@@ -113,11 +122,14 @@ describe('MediaViewer', () => {
 
   afterEach(() => http.verify());
 
+  // Flagged WITH variants: the server only withholds URLs when it also withholds a reason, and
+  // an unflagged payload is what a plain post looks like.
   const flagged = {
     id: 'm1',
     hasFlashingWarning: true,
     hasIntenseMotionWarning: false,
     variants: [{ type: 'Medium', url: 'https://cdn/y.webp', widthPx: 800, heightPx: 600 }],
+    gateReason: null,
   };
 
   it('renders safe media directly', () => {

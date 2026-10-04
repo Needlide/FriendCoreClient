@@ -26,21 +26,34 @@ describe('MediaViewer', () => {
     hasFlashingWarning: false,
     hasIntenseMotionWarning: false,
     variants,
+    gateReason: null,
   };
 
-  /** What the API now returns for flagged media: the flags, and no locations at all. */
+  /** What the API now returns for flashing media: the flags, the reason, and no locations. */
   const gated: PostMedia = {
     id: 'm1',
     hasFlashingWarning: true,
     hasIntenseMotionWarning: false,
     variants: [],
+    gateReason: 'Flashing',
+  };
+
+  /** Motion-gated media: only ever a GIF, and governed by ReduceMotion rather than flashing. */
+  const motionGated: PostMedia = {
+    id: 'm1',
+    hasFlashingWarning: false,
+    hasIntenseMotionWarning: true,
+    variants: [],
+    gateReason: 'IntenseMotion',
   };
 
   let http: HttpTestingController;
   let hideFlashing = true;
+  let reduceMotion = false;
 
   beforeEach(() => {
     hideFlashing = true;
+    reduceMotion = false;
     TestBed.configureTestingModule({
       imports: [MediaViewer],
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -48,7 +61,7 @@ describe('MediaViewer', () => {
     // The component auto-consents for a reader who has opted OUT, so the preference has to be
     // controllable per test.
     TestBed.overrideProvider(PreferencesService, {
-      useValue: { hideFlashingMedia: () => hideFlashing },
+      useValue: { hideFlashingMedia: () => hideFlashing, reduceMotion: () => reduceMotion },
     });
     http = TestBed.inject(HttpTestingController);
   });
@@ -114,7 +127,7 @@ describe('MediaViewer', () => {
 
   it('asks the server for consent, then renders the granted URLs', () => {
     const { fixture, el } = show(gated);
-    expect(el.querySelector('.placeholder')?.textContent).toContain('Sensitive media');
+    expect(el.querySelector('.placeholder')?.textContent).toContain('Flashing lights');
 
     el.querySelector<HTMLButtonElement>('.placeholder button')!.click();
     fixture.detectChanges();
@@ -183,5 +196,58 @@ describe('MediaViewer', () => {
     const { el } = show({ ...plain, variants: [] });
     expect(el.querySelector('.placeholder')).not.toBeNull();
     expect(el.querySelector('img')).toBeNull();
+  });
+
+  it('names the hazard the server reported, rather than one generic string', () => {
+    // A motion-only image is a vestibular nuisance, not a seizure risk. The old copy said
+    // "flashing lights or intense motion" for everything, which mis-stated the flashing case
+    // and overstated the motion one.
+    const flash = show(gated);
+    expect(flash.el.querySelector('.title')?.textContent).toBe('Flashing lights');
+    expect(flash.el.querySelector('.body')?.textContent).toContain('seizures');
+
+    const motion = show(motionGated);
+    expect(motion.el.querySelector('.title')?.textContent).toBe('Fast movement');
+    expect(motion.el.querySelector('.body')?.textContent).not.toContain('seizures');
+  });
+
+  it('always asks about motion, because no preference expresses consent to it', () => {
+    // ReduceMotion is about UI animation and defaults FALSE. Treating "off" as consent would
+    // auto-reveal motion to every reader by default — the opposite of the protection. Flashing
+    // is the opposite case: HideFlashingMedia defaults TRUE, so switching it off IS consent.
+    reduceMotion = false;
+    expect(show(motionGated).el.querySelector('.placeholder')).not.toBeNull();
+
+    reduceMotion = true;
+    expect(show(motionGated).el.querySelector('.placeholder')).not.toBeNull();
+  });
+
+  it('auto-consents flashing when the reader opted out, but never motion', () => {
+    hideFlashing = false;
+    reduceMotion = false;
+
+    // Flash: opted out of the protection, so the question was already answered.
+    const flash = show(gated);
+    flash.fixture.detectChanges();
+    flushReveal();
+    flash.fixture.detectChanges();
+
+    // Motion: same "protection off" state, but nobody ever consented to it — no request at all.
+    const motion = show(motionGated);
+    motion.fixture.detectChanges();
+    http.expectNone((r) => r.url.includes('/reveal'));
+    expect(motion.el.querySelector('.placeholder')).not.toBeNull();
+  });
+
+  it('still gates flashing when ReduceMotion is on — the hazards are independent', () => {
+    reduceMotion = true;
+    hideFlashing = true;
+    const { fixture, el } = show(gated);
+
+    expect(el.querySelector('.placeholder')?.textContent).toContain('Show media');
+    // Consulting the wrong preference would either nag, or show a seizure hazard to someone
+    // who asked for less motion but never opted out of flashing.
+    http.expectNone((r) => r.url.includes('/reveal'));
+    fixture.detectChanges();
   });
 });

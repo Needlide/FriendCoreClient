@@ -14,8 +14,8 @@
           This image can't be shown to you. It may have been removed, or you may not have access.
         </p>
       } @else {
-        <p class="title">Sensitive media</p>
-        <p class="body">This media may contain flashing lights or intense motion.</p>
+        <p class="title">{{ gateTitle() }}</p>
+        <p class="body">{{ gateBody() }}</p>
         <button type="button" [disabled]="revealing()" (click)="reveal()">
           {{ revealing() ? 'Loading…' : 'Show media' }}
         </button>
