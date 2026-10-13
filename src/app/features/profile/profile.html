@@ -32,7 +32,7 @@
         @if (isSelf()) {
           <a class="fc-secondary link" routerLink="/settings/profile">Edit profile</a>
         } @else {
-          <fc-follow-button [username]="p.username" />
+          <fc-follow-button [username]="p.username" [isFollowing]="p.isFollowedByViewer" />
           <button type="button" class="fc-secondary" (click)="message()">Message</button>
           <fc-block-mute-menu [username]="p.username" (blocked)="dropBlocked($event)" />
         }

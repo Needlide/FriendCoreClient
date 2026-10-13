@@ -17,6 +17,8 @@ export interface UserProfile {
   websiteUrl: string | null;
   location: string | null;
   isVerified: boolean;
+  /** Whether the requesting user follows this profile — drives the follow button. */
+  isFollowedByViewer: boolean;
   createdAt: string;
 }
 

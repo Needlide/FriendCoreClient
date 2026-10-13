@@ -1,4 +1,4 @@
-import { Component, inject, input, signal } from '@angular/core';
+import { Component, effect, inject, input, signal, untracked } from '@angular/core';
 import { SocialService } from './social.service';
 
 type FollowState = 'idle' | 'saving' | 'following';
@@ -44,7 +44,29 @@ export class FollowButton {
 
   username = input.required<string>();
 
+  /**
+   * Whether the viewer already follows this user, from the server.
+   *
+   * Without this the button can only know it is following if you clicked it in this
+   * session, so a refresh silently reverts it to "Follow" while the follow is still in
+   * effect — the button and the server then disagree. Seeding from the profile payload
+   * keeps them in step on every cold load.
+   */
+  isFollowing = input(false);
+
   protected readonly state = signal<FollowState>('idle');
+
+  constructor() {
+    // effect() rather than reading the input once: the profile loads asynchronously, so
+    // the input changes from false to true after this component is created.
+    effect(() => {
+      const following = this.isFollowing();
+      untracked(() => {
+        const current = this.state();
+        if (current !== 'saving') this.state.set(following ? 'following' : 'idle');
+      });
+    });
+  }
 
   protected toggle(): void {
     const current = this.state();

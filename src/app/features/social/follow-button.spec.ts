@@ -13,9 +13,10 @@ describe('FollowButton', () => {
 
   afterEach(() => http.verify());
 
-  function create() {
+  function create(isFollowing = false) {
     const fixture = TestBed.createComponent(FollowButton);
     fixture.componentRef.setInput('username', 'bob');
+    fixture.componentRef.setInput('isFollowing', isFollowing);
     fixture.detectChanges();
     return { fixture, el: fixture.nativeElement as HTMLElement };
   }
@@ -25,6 +26,35 @@ describe('FollowButton', () => {
       (b) => b.textContent?.trim() === 'Follow' || b.textContent?.trim() === 'Following',
     ) as HTMLButtonElement | null;
   }
+
+  it('renders Following on a cold load when the server says the viewer already follows', () => {
+    // The regression: the button only knew it was following if you had clicked in this
+    // session, so a refresh showed "Follow" while the follow was still in effect.
+    const { el } = create(true);
+    expect(primaryButton(el)?.textContent?.trim()).toBe('Following');
+  });
+
+  it('adopts the server state when the profile arrives after the button is created', () => {
+    const fixture = TestBed.createComponent(FollowButton);
+    fixture.componentRef.setInput('username', 'bob');
+    fixture.componentRef.setInput('isFollowing', false);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(primaryButton(el)?.textContent?.trim()).toBe('Follow');
+
+    // Profiles load asynchronously, so the input flips true after construction.
+    fixture.componentRef.setInput('isFollowing', true);
+    fixture.detectChanges();
+    expect(primaryButton(el)?.textContent?.trim()).toBe('Following');
+  });
+
+  it('unfollows on a cold load when the viewer already follows', () => {
+    const { fixture, el } = create(true);
+    primaryButton(el)!.click();
+    expectApi(http, '/users/bob/follow').flush(null);
+    fixture.detectChanges();
+    expect(primaryButton(el)?.textContent?.trim()).toBe('Follow');
+  });
 
   it('follows on click and flips to Following', () => {
     const { fixture, el } = create();
