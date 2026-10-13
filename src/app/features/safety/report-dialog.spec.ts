@@ -63,6 +63,42 @@ describe('ReportDialog', () => {
     }
   });
 
+  it('stays open after reporting until dismissed, rather than closing on a timer', () => {
+    // The old behaviour closed on a 1.2s timer. Reported as unreadable, and a
+    // confirmation that vanishes by itself is what assistive tech misses entirely.
+    vi.useFakeTimers();
+    try {
+      const { fixture, el } = create();
+      const spam = Array.from(el.querySelectorAll<HTMLInputElement>('input[type="radio"]')).find(
+        (r) => r.value === 'Spam',
+      )!;
+      spam.click();
+      fixture.detectChanges();
+
+      el.querySelector<HTMLButtonElement>('.actions .fc-primary')!.click();
+      expectApi(http, '/posts/p1/report').flush(null);
+      fixture.detectChanges();
+
+      const dialog = el.querySelector('dialog')!;
+      expect(dialog.open).toBe(true);
+      expect(el.textContent).toContain('Thanks');
+
+      // Time passing must not close it.
+      vi.advanceTimersByTime(10_000);
+      fixture.detectChanges();
+      expect(dialog.open).toBe(true);
+
+      const close = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find((b) =>
+        (b.textContent ?? '').includes('Close'),
+      )!;
+      close.click();
+      fixture.detectChanges();
+      expect(dialog.open).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('reports a user against the user endpoint', () => {
     const fixture = TestBed.createComponent(ReportDialog);
     fixture.componentRef.setInput('target', { kind: 'user', username: 'bob' });

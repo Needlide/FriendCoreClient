@@ -1216,6 +1216,22 @@ export class Thread implements OnDestroy {
     return this.pickerForId() === m.id;
   }
 
+  /**
+   * Only one message's action menu may be open at a time.
+   *
+   * These are native <details>, which do not exclude each other: opening one on each of
+   * three messages leaves three menus hanging over the thread, and the only way out is to
+   * click each one. Closing the siblings on open keeps the single-menu expectation without
+   * giving up the native toggle, keyboard behaviour and focus handling.
+   */
+  protected onActionsToggle(event: Event): void {
+    const opened = event.target as HTMLDetailsElement;
+    if (!opened.open) return;
+    for (const other of document.querySelectorAll<HTMLDetailsElement>('details.actions')) {
+      if (other !== opened && other.open) other.open = false;
+    }
+  }
+
   protected togglePicker(m: MessageResponse): void {
     this.actionError.set(null);
     this.pickerForId.set(this.pickerForId() === m.id ? null : m.id);

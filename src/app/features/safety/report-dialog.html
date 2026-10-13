@@ -6,6 +6,13 @@
 
   @if (sent()) {
     <p role="status" class="sent">Thanks — we'll review this.</p>
+
+    <!-- Dismissed explicitly rather than on a timer. The old 1.2s auto-close was
+         reported as unreadable, and a confirmation that vanishes on its own is exactly
+         what a screen reader user misses: focus stays on a node that no longer exists. -->
+    <div class="actions">
+      <button type="button" class="fc-primary" autofocus (click)="close()">Close</button>
+    </div>
   } @else {
     <fc-auth-error [error]="error()" context="generic" />
 

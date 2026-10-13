@@ -223,7 +223,7 @@
               </p>
               <!-- Native <details>: free toggle + keyboard behaviour, and no focus-trap
                  machinery for a two-item menu (same reasoning as block-mute-menu). -->
-              <details class="actions">
+              <details class="actions" (toggle)="onActionsToggle($event)">
                 <summary [attr.aria-label]="'Actions for this message'">⋯</summary>
                 <div class="items" role="menu" aria-label="Actions for this message">
                   <!-- Reactions open from here rather than a hover-only smiley: the same

@@ -63,8 +63,8 @@ export class ReportDialog {
       next: () => {
         this.sending.set(false);
         this.sent.set(true);
-        // Let the thanks register, then close.
-        setTimeout(() => this.close(), 1200);
+        // Stays open until dismissed. See the note in report-dialog.html: the previous
+        // 1.2s timer closed before the confirmation could be read or announced.
       },
       error: (err: unknown) => {
         this.error.set(err instanceof ApiError ? err : null);
