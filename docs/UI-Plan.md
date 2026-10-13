@@ -29,7 +29,7 @@ live at the server root.
 | `/discover` | auth | Discovery (People · Posts tabs) | `GET /feed/discovery/people`, `GET /feed/discovery/posts` |
 | `/u/:username` | auth | Profile (self/other) + user posts | `GET /users/{username}`, `GET /users/{username}/posts`, `GET /users/{username}/followers|following`, follow/unfollow, block/unblock, mute/unmute, `POST /conversations`, `POST /users/{username}/report` |
 | `/messages` | auth | Conversation list | `GET /conversations` |
-| `/messages/:id` | auth | Thread | `GET /conversations/{id}/messages?cursor=`, `POST /conversations/{id}/messages`, `POST /conversations/{id}/read`, hubs `MessageReceived` |
+| `/messages/:id` | auth | Thread | `GET /conversations/{id}/messages?cursor=`, `POST /conversations/{id}/messages`, `POST /conversations/{id}/read`, `POST /conversations/{id}/messages/{messageId}/reactions`, hubs `MessageReceived` |
 | `/notifications` | auth | List (actor names link to profiles), per-type mute toggles, mark-all-read | `GET /notifications`, `GET /notifications/unread-count`, `POST /notifications/read`, `GET/PATCH /users/me/notification-types`, hub `NotificationReceived` |
 | `/settings/profile` | auth | Edit profile | `PATCH /users/me/profile` |
 | `/settings/interests` | auth | Edit tags (onboarding recovery) | `GET /users/me/tags`, `PUT /users/me/tags` |
@@ -103,14 +103,73 @@ otherwise block is immediate, no modal. Blocking the admin account → 400
 
 * List (`GET /conversations`): rows with unread counts; empty → "No messages yet" + hint.
 * Thread (`/messages/:id`): `GET .../messages?cursor=` is **newest-first** — display reversed with composer at bottom. Send via REST (sender already has the message; no optimistic echo needed beyond pending state). `POST .../read` on open. `MessageReceived` push = "something changed" → reconcile via REST; also reconcile on every reconnect (`RealtimeService.resync$`).
-* **Per-message actions** (own message): `⋯` menu under the bubble →
-  **Edit** (`PATCH .../messages/{messageId}`, inline textarea, optimistic with rollback) and
+* **Replies**: every bubble's `⋯` menu offers **Reply**, including one that is itself a reply —
+  quoting goes one level deep at most, so it never nests. A **Reply** bar sits with the other
+  pre-send inputs (safety declaration, attachment) and carries the target's text; cancelling it
+  never eats the draft, and sending consumes it. The quoted parent renders inside the bubble
+  above the text as a short excerpt. If the parent is deleted, the quote **survives** and
+  relabels to "Deleted message" rather than vanishing — a reply whose quote disappeared would
+  read as the first word in the thread. `MessageDeleted` and `MessageEdited` pushes update every
+  loaded quote that pointed at the changed message, so the push route and a refetch converge.
+* **Per-message actions**: `⋯` menu under the bubble. **React** leads it and appears on
+  *every* bubble — anyone in the thread may react to anything in it, their own messages
+  included, which is the one action that is not the sender's privilege. It opens a picker
+  **in place** (not a hover-only smiley, same rule as the rest of this menu) listing the
+  server's fixed set of seven emoji; nothing else is offered, and the client list mirrors
+  the server allow-list.
+  Existing reactions render as chips under the bubble — glyph + count, highlighted and
+  `aria-pressed` when yours, ordered most-reacted first. Tapping a chip toggles it
+  (`POST .../messages/{messageId}/reactions`, body `{emoji}`), optimistic with rollback, and a
+  count reaching 0 drops the chip entirely rather than leaving a bare "0".
+  `MessageReactionChanged` pushes the emoji's new state to **both** participants.
+* **Own message, continued**: **Edit** (`PATCH .../messages/{messageId}`, inline textarea,
+  optimistic with rollback) and
   **Delete** (`DELETE .../messages/{messageId}`, confirm panel, removed only on success).
+  An edit sends the message's `version` alongside the text. If that version is stale — nearly
+  always this same account saving from another device — the server answers **409** and the
+  editor **keeps the draft**, says so in different copy (a conflict is not "try again"; an
+  unchanged retry conflicts identically), shows *Currently saved: …* above the draft, and
+  refetches the page. Saving again then overwrites deliberately, having read what it replaces.
+  Delete takes no version and is never blocked by one.
   Both push `MessageEdited` / `MessageDeleted` to **both** participants, so an open thread on
   either side corrects itself. Edit is text-only — an attachment-only bubble offers no Edit.
   On the other participant's message the menu offers **Report** instead (self-reports are
   refused server-side, so the option is not shown). Every bubble also renders its sent time
   via `RelativeTimePipe`, plus a `· edited` marker when `editedAt` is set.
+* **Refused images**: if the server refuses a send with 409 `Media.RefusedByRecipient` (the
+  recipient declined that exact image before), the composer shows its own banner — "This image
+  can't be sent to this conversation. Remove it, or send your message without it." Never the
+  generic "try again", which would be false: the same image is refused identically every time.
+  The typed text is kept and the attachment is cleared, because the server soft-deletes the
+  upload while refusing it. Matched on the error code, not the 409 status, which is also used by
+  the edit-conflict path.
+* **Hide**: on somebody else's message, next to Report. Removes the bubble from your thread
+  only — they keep their copy, and are not told you removed it. Any image involved is recorded as
+  refused between you, so it cannot come back. No confirmation dialog, because unlike Delete
+  nothing is destroyed — their copy survives either way. It is still PERMANENT for you: there is
+  no unhide in this version, so it says so rather than letting someone find out later. Not offered on your own messages: there is nothing to withdraw from your
+  own view that Delete does not already do.
+* **Conversation search**: a search box above the thread. Results **replace** the timeline while
+  active rather than floating over it — they are newest-first and are not in the conversation's
+  order, so interleaving them would misstate where they sit. Says "No messages match …" only once a
+  search has actually run, so an empty state is never confused with an unsearched thread. Typing is
+  debounced, and a slow response for an older term cannot overwrite a newer one. Text only.
+  Results are clickable: tapping one opens the conversation at that message, with 25 either side,
+  the jumped-to bubble outlined, a "Newer messages" button when the window stops short of the
+  present, and a persistent "Viewing an older part of this conversation / Back to latest" banner —
+  without which a conversation that stops mid-history just looks like it ended.
+* **Date dividers**: a rule between calendar days, labelled Today / Yesterday / weekday / date.
+  Midnight is a real boundary — 23:50 and 00:10 get two dividers even though they are two hours
+  apart. Resolved from your clock, so "Today" means your today.
+* **Scroll behaviour**: the thread opens at the newest message; loading older messages holds your
+  position instead of shoving what you were reading off the screen; a new message only auto-scrolls
+  if you were already at the bottom, otherwise a sticky "N new messages" button appears and clears
+  when you go and read it.
+* **Footer**: a quiet centred line crediting the DNS provider (FreeDNS asked for a link back). On every authenticated page via the shell; not on the guest auth pages, which sit outside it.
+* **Unread badge in the nav**: a count next to Messages, summed across conversations and capped at
+  99+. Deliberately separate from the notification bell — the bell says "something is new", this
+  says how much. Reading a thread clears its count; a message arriving in the open thread does not
+  count as unread.
 * **Support chat**: entry point in `/help` and/or Messages empty state —
   "Message the team — thanks, bugs, quick questions. Abuse goes via Report."
   `POST /conversations/support` (find-or-create with admin inbox; 500

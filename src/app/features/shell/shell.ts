@@ -5,6 +5,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { PreferencesService } from '../../core/preferences/preferences.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { UnreadService } from '../../core/services/unread.service';
 import { NotificationBell } from '../notifications/notification-bell';
 
 /**
@@ -28,6 +29,7 @@ export class Shell implements OnInit, OnDestroy {
   private readonly realtime = inject(RealtimeService);
   private readonly prefs = inject(PreferencesService);
   protected readonly notifications = inject(NotificationsService);
+  protected readonly unread = inject(UnreadService);
   private readonly router = inject(Router);
 
   private subscription?: Subscription;
@@ -35,6 +37,9 @@ export class Shell implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.notifications.refreshUnread();
     this.notifications.loadSnooze();
+    // The messages badge needs its own first read: unlike notifications it is a SUM over
+    // conversations, so there is no single "unread" endpoint to bump.
+    this.unread.load();
     // Accessibility prefs apply document-wide (data-* on <html>); load failure
     // keeps the safe defaults — the settings page surfaces the error instead.
     this.prefs.load().subscribe({ error: () => undefined });
@@ -67,6 +72,10 @@ export class Shell implements OnInit, OnDestroy {
   }
 
   protected logout(): void {
+    // Clear the message badge here rather than inside AuthService: the store depends on
+    // MessagingService, which depends on the API, which depends on AuthService — so AuthService
+    // injecting it would be a dependency cycle. This is the one place that owns the sequence.
+    this.unread.reset();
     // Order matters: stop pushes first, then end the server session.
     void this.realtime.disconnect().then(() => {
       this.auth.logout().subscribe({

@@ -21,8 +21,16 @@
       routerLinkActive="active"
       #messagesRla="routerLinkActive"
       [attr.aria-current]="messagesRla.isActive ? 'page' : null"
-      >Messages</a
-    >
+      >Messages
+      @if (unread.total() > 0) {
+        <span class="nav-badge">
+          <!-- sr-only, because a bare "3" next to a link is meaningless when read aloud. The
+               visual number stays hidden from assistive tech so it is not announced twice. -->
+          <span class="fc-sr-only">{{ unread.total() }} unread messages</span>
+          <span aria-hidden="true">{{ unread.total() > 99 ? '99+' : unread.total() }}</span>
+        </span>
+      }
+    </a>
   </nav>
   <div class="tools">
     <fc-notification-bell
@@ -47,3 +55,10 @@
 <main id="main-content">
   <router-outlet />
 </main>
+
+<footer class="site-footer">
+  <!-- FreeDNS (freedns.afraid.org) provides the subdomain's DNS and asks for a text link in
+       return. A footer rather than a dedicated page: it is present on every page without costing
+       the user a navigation, and it stays out of the way of the conversation itself. -->
+  <span>DNS by </span><a href="https://freedns.afraid.org/" rel="noopener">Free DNS</a>
+</footer>

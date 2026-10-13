@@ -10,6 +10,7 @@ const serverPrefs: UserPreferences = {
   disableAutoplay: false,
   reduceVisualNoise: true,
   contentPreference: 'Sensitive',
+  sendMessageOnEnter: true,
 };
 
 describe('PreferencesService', () => {

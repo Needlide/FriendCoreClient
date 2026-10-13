@@ -7,6 +7,7 @@ import { ApiError } from '../../core/models/api-error';
 import { Conversation } from '../../core/models/messaging.models';
 import { AuthError } from '../auth/ui/auth-error';
 import { MessagingService } from './messaging.service';
+import { UnreadService } from '../../core/services/unread.service';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { Subscription } from 'rxjs';
 import { OnDestroy } from '@angular/core';
@@ -29,6 +30,7 @@ import { OnDestroy } from '@angular/core';
 })
 export class Conversations implements OnDestroy {
   private readonly messaging = inject(MessagingService);
+  private readonly unread = inject(UnreadService);
   private readonly realtime = inject(RealtimeService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -99,6 +101,10 @@ export class Conversations implements OnDestroy {
     return this.messaging.conversations().pipe(
       tap((res) => {
         this.conversations.set(res.conversations);
+        // Hand the counts to the nav badge rather than letting it fetch its own: this response
+        // already has every conversation's unread count, and a second request would only ever
+        // disagree with this one.
+        this.unread.setAll(res.conversations);
         this.loading.set(false);
       }),
       catchError((err: unknown) => {

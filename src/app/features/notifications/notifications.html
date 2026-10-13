@@ -84,15 +84,23 @@
   } @else {
     <ul class="rows">
       @for (n of items(); track n.id) {
+        <!-- The whole row is the link, not just the actor's name: a notification is about its
+             subject, and the row text ("Alice sent you a message") reads as the accessible name.
+             A separate profile link inside a row link would be invalid nested-anchor markup, and
+             the actor is reachable from every subject anyway — so nothing is lost. -->
         <li class="row" [class.unread]="!n.isRead">
-          <span class="avatar" aria-hidden="true">{{ n.actor.displayName[0]?.toUpperCase() }}</span>
-          <div class="body">
-            <p>
-              <a [routerLink]="['/u', n.actor.username]">{{ n.actor.displayName }}</a>
-              {{ actionText(n.type) }}
-            </p>
-            <time [attr.datetime]="n.createdAt">{{ n.createdAt | relativeTime }}</time>
-          </div>
+          <a class="row-link" [routerLink]="targetLink(n)">
+            <span class="avatar" aria-hidden="true">{{
+              n.actor.displayName[0]?.toUpperCase()
+            }}</span>
+            <div class="body">
+              <p>
+                <strong class="actor">{{ n.actor.displayName }}</strong>
+                {{ actionText(n.type) }}
+              </p>
+              <time [attr.datetime]="n.createdAt">{{ n.createdAt | relativeTime }}</time>
+            </div>
+          </a>
         </li>
       }
     </ul>

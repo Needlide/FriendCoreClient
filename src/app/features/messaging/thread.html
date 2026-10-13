@@ -16,183 +16,433 @@
     <fc-auth-error [error]="error()" context="generic" />
     <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
   } @else {
-    @if (!exhausted) {
-      <button
-        type="button"
-        class="fc-secondary older"
-        [disabled]="loadingOlder()"
-        (click)="loadOlder()"
-      >
-        {{ loadingOlder() ? 'Loading…' : 'Load older' }}
-      </button>
-    }
-
-    <ul class="messages" role="log" aria-live="polite" aria-label="Messages">
-      @for (m of messages(); track m.id) {
-        <li class="bubble" [class.mine]="isMine(m)" [class.editing]="editingId() === m.id">
-          @if (editingId() === m.id) {
-            <div class="editor">
-              <label class="fc-sr-only" [for]="'edit-' + m.id">Edit your message</label>
-              <textarea
-                [id]="'edit-' + m.id"
-                rows="2"
-                [value]="editDraft()"
-                (input)="onEditDraft($event)"
-              ></textarea>
-              @if (editFailed()) {
-                <p class="editor-error" role="alert">
-                  Couldn't save. Your text is still here — try again.
-                </p>
-              }
-              <div class="editor-actions">
-                <button type="button" class="fc-secondary" (click)="cancelEdit()">Cancel</button>
-                <button
-                  type="button"
-                  class="fc-primary"
-                  [disabled]="savingEdit() || editDraft().trim().length === 0"
-                  (click)="saveEdit(m.id, m)"
-                >
-                  {{ savingEdit() ? 'Saving…' : 'Save' }}
-                </button>
-              </div>
-            </div>
-          } @else {
-            @if (m.media; as media) {
-              <fc-media-viewer [media]="media" [compact]="true" />
-            }
-            @if (m.content) {
-              <fc-linkified-text [text]="m.content" />
-            }
-            <p class="meta">
-              <time class="sent-at" [attr.datetime]="m.createdAt">{{
-                m.createdAt | relativeTime
-              }}</time>
-              @if (m.editedAt) {
-                <span class="edited">· edited</span>
-              }
-            </p>
-            <!-- Native <details>: free toggle + keyboard behaviour, and no focus-trap
-                 machinery for a two-item menu (same reasoning as block-mute-menu). -->
-            <details class="actions">
-              <summary [attr.aria-label]="'Actions for this message'">⋯</summary>
-              <div class="items" role="menu" aria-label="Actions for this message">
-                @if (canEdit(m)) {
-                  <button type="button" role="menuitem" (click)="startEdit(m)">Edit</button>
-                }
-                @if (isMine(m)) {
-                  <button type="button" role="menuitem" class="danger" (click)="askDelete(m.id)">
-                    Delete
-                  </button>
-                } @else {
-                  <!-- The server refuses a self-report, so the option is simply not offered
-                       on your own bubbles rather than offered and then rejected. -->
-                  <button
-                    type="button"
-                    role="menuitem"
-                    (click)="openReport(m.id); reportDialog.open()"
-                  >
-                    Report
-                  </button>
-                  <!-- Reports the image itself. Removing a message would drop the bubble but
-                       leave the media row alive, so an image reported only via its message
-                       could still be re-sent. -->
-                  @if (canReportImage(m)) {
-                    <button
-                      type="button"
-                      role="menuitem"
-                      (click)="openReportImage(m.media!.id); reportDialog.open()"
-                    >
-                      Report image
-                    </button>
-                  }
-                }
-              </div>
-            </details>
-          }
-
-          @if (confirmingDeleteId() === m.id) {
-            <div
-              class="confirm"
-              role="alertdialog"
-              aria-labelledby="delete-confirm-h"
-              aria-describedby="delete-confirm-d"
-            >
-              <p id="delete-confirm-h"><strong>Delete this message?</strong></p>
-              <p id="delete-confirm-d">It disappears for both of you and can't be brought back.</p>
-              <div class="confirm-actions">
-                <button type="button" class="fc-secondary" (click)="cancelDelete()">Cancel</button>
-                <button
-                  type="button"
-                  class="fc-danger"
-                  [disabled]="deletingId() === m.id"
-                  (click)="confirmDelete(m.id)"
-                >
-                  {{ deletingId() === m.id ? 'Deleting…' : 'Delete' }}
-                </button>
-              </div>
-            </div>
-          }
-        </li>
-      } @empty {
-        <li class="empty">No messages yet — say hi.</li>
+    <!-- Search sits above the thread and REPLACES it while active, rather than floating over it.
+         Results are newest-first and are not part of the conversation's order, so interleaving
+         them with the real timeline would be a lie about where they sit. -->
+    <div class="search">
+      <label class="fc-sr-only" for="thread-search">Search this conversation</label>
+      <input
+        #searchBox
+        id="thread-search"
+        type="search"
+        placeholder="Search this conversation"
+        autocomplete="off"
+        [value]="searchTerm()"
+        (input)="onSearchInput(searchBox.value)"
+      />
+      @if (searchTerm()) {
+        <button type="button" class="fc-secondary clear" (click)="clearSearch()">Clear</button>
       }
-    </ul>
-    <fc-report-dialog #reportDialog [target]="reportTarget()" />
+    </div>
 
-    @if (actionError(); as message) {
-      <p class="send-error" role="alert">{{ message }}</p>
-    }
+    @if (searching()) {
+      <p role="status">Searching…</p>
+    } @else if (searchError()) {
+      <p role="status" class="search-error">
+        Couldn't search right now. Try again.
+        <button type="button" class="fc-secondary" (click)="clearSearch()">Start over</button>
+      </p>
+    } @else if (hasSearched) {
+      @if (searchResults()!.length === 0) {
+        <p role="status">No messages match "{{ searchTerm() }}".</p>
+      } @else {
+        <ol class="search-results" aria-label="Search results">
+          @for (hit of searchResults(); track hit.id) {
+            <!-- A button, not a clickable row: it performs an action and is reachable by keyboard
+                 without adding key handling to a list item. -->
+            <li>
+              <button
+                type="button"
+                class="jump"
+                [disabled]="jumpingTo()"
+                (click)="jumpToMessage(hit.id)"
+              >
+                <!-- The thread side-aligns bubbles rather than naming them, and the conversation
+                   response carries no display name for the other side, so this does not invent
+                   one. "You"/"Them" is what the surrounding chrome already implies. -->
+                <span class="who">{{ isMine(hit) ? 'You' : 'Them' }}</span>
+                <span class="when">{{ hit.createdAt | date: 'short' }}</span>
+                @if (hit.content) {
+                  <p class="text">{{ hit.content }}</p>
+                } @else {
+                  <p class="text attachment-only">Attachment</p>
+                }
+                <span class="hint">Jump to this message</span>
+              </button>
+            </li>
+          }
+        </ol>
+      }
+    } @else {
+      @if (!exhausted) {
+        <button
+          type="button"
+          class="fc-secondary older"
+          [disabled]="loadingOlder()"
+          (click)="loadOlder()"
+        >
+          {{ loadingOlder() ? 'Loading…' : 'Load older' }}
+        </button>
+      }
 
-    @if (sendError()) {
-      <p class="send-error" role="alert">Couldn't send. Your text is still here — try again.</p>
-    }
-    <form class="composer" (submit)="send(); $event.preventDefault()" aria-label="Send a message">
-      @if (attachment(); as att) {
-        <div class="attachment">
-          @if (att.preview) {
-            <img class="preview" [src]="att.preview" alt="" />
-          }
-          @if (att.kind === 'uploading') {
-            <p class="status" role="status">Uploading… {{ attachmentPercent() }}%</p>
-          } @else if (att.kind === 'processing') {
-            <p class="status" role="status">Preparing image…</p>
-          } @else if (att.kind === 'failed') {
-            <p class="status error" role="alert">{{ attachmentMessage() }}</p>
-          }
-          <button type="button" class="fc-secondary remove" (click)="removeAttachment()">
-            Remove image
+      <!-- Shown whenever the thread is showing a window rather than the live end. A reader who
+           jumped here must be able to tell: a conversation that silently stops at "3 messages ago"
+           looks like the conversation ended. -->
+      @if (parkedMidConversation()) {
+        <div class="parked" role="status">
+          <span>Viewing an older part of this conversation.</span>
+          <button type="button" class="fc-secondary" (click)="backToLatest()">
+            Back to latest
           </button>
         </div>
       }
-      <div class="row">
-        <label class="fc-sr-only" for="thread-file">Attach an image</label>
-        <input
-          id="thread-file"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
-          [disabled]="attachmentBusyState()"
-          (change)="onFile($event)"
-        />
-        <!-- Declared BEFORE a file is chosen, not after. The safety flags are sent with the
+
+      @if (jumpError()) {
+        <p role="alert" class="search-error">
+          That message is no longer available. It may have been deleted.
+          <button type="button" class="fc-secondary" (click)="backToLatest()">
+            Back to latest
+          </button>
+        </p>
+      }
+
+      @if (hasNewer) {
+        <button
+          type="button"
+          class="fc-secondary newer"
+          [disabled]="loadingOlder()"
+          (click)="loadNewer()"
+        >
+          {{ loadingOlder() ? 'Loading…' : 'Newer messages' }}
+        </button>
+      }
+
+      <!-- The unread affordance sits above the list rather than inside it: as a list item it would
+           be part of the conversation, and the screen reader would read it with every message. -->
+      @if (unseenBelow() > 0) {
+        <button type="button" class="fc-secondary jump-latest" (click)="scrollToLatest()">
+          {{ unseenBelow() === 1 ? '1 new message' : unseenBelow() + ' new messages' }}
+        </button>
+      }
+
+      <ul
+        #messageList
+        class="messages"
+        role="log"
+        aria-live="polite"
+        aria-label="Messages"
+        (scroll)="onThreadScroll()"
+      >
+        @for (m of messages(); track m.id) {
+          <!-- Inserted before the bubble, not inside it: a divider belongs to the flow of the
+               conversation, not to any one message, and inside the li it would be repeated on
+               every re-render of that message. -->
+          @if (startsDay(m)) {
+            <li class="day-divider" role="separator">
+              <span>{{ dayLabel(m) }}</span>
+            </li>
+          }
+          <li
+            class="bubble"
+            [class.mine]="isMine(m)"
+            [class.editing]="editingId() === m.id"
+            [class.jumped]="jumpedToId() === m.id"
+          >
+            @if (editingId() === m.id) {
+              <div class="editor">
+                <label class="fc-sr-only" [for]="'edit-' + m.id">Edit your message</label>
+                <textarea
+                  [id]="'edit-' + m.id"
+                  rows="2"
+                  [value]="editDraft()"
+                  (input)="onEditDraft($event)"
+                ></textarea>
+                @if (editFailed()) {
+                  <!-- Distinct copy on purpose. A conflict is not "try again": this account
+                     saved a different wording from another device, so the version behind this
+                     editor was stale and an unchanged retry would have failed identically. The
+                     thread refetched, which both shows what actually won below and puts the
+                     current version back on the bubble — so saving again here overwrites it
+                     deliberately, having read it first. -->
+                  <p class="editor-error" role="alert">
+                    @if (editConflict()) {
+                      This was changed on another device. Your text is still here — save again to
+                      replace theirs, or cancel to keep it.
+                    } @else {
+                      Couldn't save. Your text is still here — try again.
+                    }
+                  </p>
+                }
+                <!-- Conflict only, and only because the open editor otherwise REPLACES the bubble
+                   body: without this the refetched wording would be fetched and then invisible,
+                   which would make recovering from a conflict guesswork. -->
+                @if (editConflict()) {
+                  <p class="editor-current">
+                    <span class="editor-current-label">Currently saved:</span>
+                    {{ m.content }}
+                  </p>
+                }
+                <div class="editor-actions">
+                  <button type="button" class="fc-secondary" (click)="cancelEdit()">Cancel</button>
+                  <button
+                    type="button"
+                    class="fc-primary"
+                    [disabled]="savingEdit() || editDraft().trim().length === 0"
+                    (click)="saveEdit(m.id, m)"
+                  >
+                    {{ savingEdit() ? 'Saving…' : 'Save' }}
+                  </button>
+                </div>
+              </div>
+            } @else {
+              @if (m.replyTo; as quoted) {
+                <!-- The quoted parent. A quote is a reference, not a copy: it is the server's
+                   short excerpt, and it survives the parent being deleted by switching to a
+                   "deleted" state rather than vanishing — a reply whose quote silently
+                   disappeared would look like the first word in the thread. -->
+                <p class="quote" [class.deleted]="quoted.wasDeleted">
+                  <span class="quote-label">{{
+                    quoted.wasDeleted ? 'Deleted message' : 'Replying to'
+                  }}</span>
+                  <span class="quote-text">{{ quoted.excerpt || 'Attachment' }}</span>
+                </p>
+              }
+              @if (m.media; as media) {
+                <fc-media-viewer [media]="media" [compact]="true" />
+              }
+              @if (m.content) {
+                <fc-linkified-text [text]="m.content" />
+              }
+              <p class="meta">
+                <time class="sent-at" [attr.datetime]="m.createdAt">{{
+                  m.createdAt | relativeTime
+                }}</time>
+                @if (m.editedAt) {
+                  <span class="edited">· edited</span>
+                }
+              </p>
+              <!-- Native <details>: free toggle + keyboard behaviour, and no focus-trap
+                 machinery for a two-item menu (same reasoning as block-mute-menu). -->
+              <details class="actions">
+                <summary [attr.aria-label]="'Actions for this message'">⋯</summary>
+                <div class="items" role="menu" aria-label="Actions for this message">
+                  <!-- Reactions open from here rather than a hover-only smiley: the same
+                     reasoning as this whole menu — nothing in the thread needs a pointer to
+                     be reachable, and it works on touch without a hover state to fake. -->
+                  <button type="button" role="menuitem" (click)="togglePicker(m)">
+                    {{ isPickerOpen(m) ? 'Close reactions' : 'React' }}
+                  </button>
+                  <!-- Available on every message, including one that is itself a reply: quoting
+                     goes one level deep at most, so this can never nest. -->
+                  <button type="button" role="menuitem" (click)="startReply(m)">Reply</button>
+                  @if (canEdit(m)) {
+                    <button type="button" role="menuitem" (click)="startEdit(m)">Edit</button>
+                  }
+                  @if (isMine(m)) {
+                    <button type="button" role="menuitem" class="danger" (click)="askDelete(m.id)">
+                      Delete
+                    </button>
+                  } @else {
+                    <!-- Takes it out of YOUR thread only; they keep their copy and are not told.
+                       No confirmation dialog, unlike Delete, because nothing is destroyed:
+                       their message, its text and its image are all still there. For YOU it is
+                       permanent — there is no unhide in this version, so it says so rather than
+                       leaving someone to discover it later. -->
+                    <button
+                      type="button"
+                      role="menuitem"
+                      [disabled]="isHiding(m)"
+                      (click)="hideMessage(m)"
+                    >
+                      Hide
+                    </button>
+                    <!-- The server refuses a self-report, so the option is simply not offered
+                       on your own bubbles rather than offered and then rejected. -->
+                    <button
+                      type="button"
+                      role="menuitem"
+                      (click)="openReport(m.id); reportDialog.open()"
+                    >
+                      Report
+                    </button>
+                    <!-- Reports the image itself. Removing a message would drop the bubble but
+                       leave the media row alive, so an image reported only via its message
+                       could still be re-sent. -->
+                    @if (canReportImage(m)) {
+                      <button
+                        type="button"
+                        role="menuitem"
+                        (click)="openReportImage(m.media!.id); reportDialog.open()"
+                      >
+                        Report image
+                      </button>
+                    }
+                  }
+                </div>
+              </details>
+
+              <!-- Reaction chips: existing state, each one a toggle. A chip whose count
+                 reached zero is simply gone — no tombstone, matching a deleted message. -->
+              @if (m.reactions?.length) {
+                <ul class="reactions" aria-label="Reactions">
+                  @for (chip of m.reactions; track chip.emoji) {
+                    <li>
+                      <button
+                        type="button"
+                        class="chip"
+                        [class.mine]="chip.reacted"
+                        [disabled]="isReactionPending(m.id, chip.emoji)"
+                        [attr.aria-pressed]="chip.reacted"
+                        [attr.aria-label]="
+                          chip.reacted
+                            ? 'Remove your ' + chip.emoji + ' reaction, ' + chip.count + ' in total'
+                            : 'React with ' + chip.emoji + ', ' + chip.count + ' in total'
+                        "
+                        (click)="toggleReaction(m, chip.emoji)"
+                      >
+                        <span class="glyph" aria-hidden="true">{{ chip.emoji }}</span>
+                        <span class="count">{{ chip.count }}</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+
+              @if (isPickerOpen(m)) {
+                <ul class="picker" aria-label="Pick a reaction">
+                  @for (emoji of reactionEmoji; track emoji) {
+                    <li>
+                      <button
+                        type="button"
+                        class="chip"
+                        [class.mine]="
+                          m.reactions?.some((chip) => chip.emoji === emoji && chip.reacted)
+                        "
+                        [disabled]="isReactionPending(m.id, emoji)"
+                        [attr.aria-pressed]="
+                          m.reactions?.some((chip) => chip.emoji === emoji && chip.reacted)
+                        "
+                        [attr.aria-label]="'React with ' + emoji"
+                        (click)="toggleReaction(m, emoji)"
+                      >
+                        <span class="glyph" aria-hidden="true">{{ emoji }}</span>
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            }
+
+            @if (confirmingDeleteId() === m.id) {
+              <div
+                class="confirm"
+                role="alertdialog"
+                aria-labelledby="delete-confirm-h"
+                aria-describedby="delete-confirm-d"
+              >
+                <p id="delete-confirm-h"><strong>Delete this message?</strong></p>
+                <p id="delete-confirm-d">
+                  It disappears for both of you and can't be brought back.
+                </p>
+                <div class="confirm-actions">
+                  <button type="button" class="fc-secondary" (click)="cancelDelete()">
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    class="fc-danger"
+                    [disabled]="deletingId() === m.id"
+                    (click)="confirmDelete(m.id)"
+                  >
+                    {{ deletingId() === m.id ? 'Deleting…' : 'Delete' }}
+                  </button>
+                </div>
+              </div>
+            }
+          </li>
+        } @empty {
+          <li class="empty">No messages yet — say hi.</li>
+        }
+      </ul>
+      <fc-report-dialog #reportDialog [target]="reportTarget()" />
+
+      @if (actionError(); as message) {
+        <p class="send-error" role="alert">{{ message }}</p>
+      }
+
+      @if (sendRefused()) {
+        <!-- Own copy, own recovery. "Try again" would be a lie: the same image is refused every
+           time, and the attachment it referred to has already been removed. -->
+        <p class="send-error refused" role="alert">
+          This image can't be sent to this conversation. Remove it, or send your message without it.
+        </p>
+      } @else if (sendError()) {
+        <p class="send-error" role="alert">Couldn't send. Your text is still here — try again.</p>
+      }
+      <form class="composer" (submit)="send(); $event.preventDefault()" aria-label="Send a message">
+        @if (attachment(); as att) {
+          <div class="attachment">
+            @if (att.preview) {
+              <img class="preview" [src]="att.preview" alt="" />
+            }
+            @if (att.kind === 'uploading') {
+              <p class="status" role="status">Uploading… {{ attachmentPercent() }}%</p>
+            } @else if (att.kind === 'processing') {
+              <p class="status" role="status">Preparing image…</p>
+            } @else if (att.kind === 'failed') {
+              <p class="status error" role="alert">{{ attachmentMessage() }}</p>
+            }
+            <button type="button" class="fc-secondary remove" (click)="removeAttachment()">
+              Remove image
+            </button>
+          </div>
+        }
+        <div class="row">
+          <label class="fc-sr-only" for="thread-file">Attach an image</label>
+          <input
+            id="thread-file"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            [disabled]="attachmentBusyState()"
+            (change)="onFile($event)"
+          />
+          <!-- Declared BEFORE a file is chosen, not after. The safety flags are sent with the
              upload request, so a declaration made afterwards would be silently ignored —
              which would be worse than not offering one. Mirrors the post composer, where the
              control likewise only exists in the no-attachment state. -->
-        @if (!attachment()) {
-          <fc-safety-declaration class="declare" [(declared)]="warnSafety" />
-        }
-        <label class="fc-sr-only" for="thread-draft">Message</label>
-        <textarea
-          id="thread-draft"
-          rows="2"
-          [value]="draft()"
-          (input)="onDraft($event)"
-          (keydown.enter)="onEnter($event)"
-          placeholder="Write a message…"
-        ></textarea>
-        <button type="submit" class="fc-primary" [disabled]="!canSend()">
-          {{ sending() ? 'Sending…' : 'Send' }}
-        </button>
-      </div>
-    </form>
+          @if (!attachment()) {
+            <fc-safety-declaration class="declare" [(declared)]="warnSafety" />
+          }
+          @if (replyingTo(); as quoted) {
+            <!-- Sits with the other pre-send input rather than after the draft, because it is
+               part of what is about to be sent. Dismissing it must never eat the draft. -->
+            <p class="replying">
+              <span class="replying-label">Replying to</span>
+              <span class="replying-text">{{ quoted.label }}</span>
+              <button
+                type="button"
+                class="replying-cancel"
+                aria-label="Cancel reply"
+                (click)="cancelReply()"
+              >
+                ✕
+              </button>
+            </p>
+          }
+          <label class="fc-sr-only" for="thread-draft">Message</label>
+          <textarea
+            id="thread-draft"
+            rows="2"
+            [value]="draft()"
+            (input)="onDraft($event)"
+            (keydown)="onComposerKeydown($event)"
+            placeholder="Write a message…"
+          ></textarea>
+          <button type="submit" class="fc-primary" [disabled]="!canSend()">
+            {{ sending() ? 'Sending…' : 'Send' }}
+          </button>
+        </div>
+      </form>
+    }
   }
 </div>

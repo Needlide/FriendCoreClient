@@ -149,6 +149,7 @@ describe('MediaViewer', () => {
         disableAutoplay: true,
         reduceVisualNoise: false,
         contentPreference: 'General',
+        sendMessageOnEnter: true,
       })
       .subscribe();
     const patch = expectApi(http, '/users/me/preferences');
@@ -159,6 +160,7 @@ describe('MediaViewer', () => {
       disableAutoplay: true,
       reduceVisualNoise: false,
       contentPreference: 'General',
+      sendMessageOnEnter: true,
     });
 
     const fixture = TestBed.createComponent(MediaViewer);

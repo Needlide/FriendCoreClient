@@ -30,6 +30,7 @@ export class Preferences {
   protected disableAutoplay = signal(true);
   protected reduceNoise = signal(false);
   protected contentPref = signal<UserPreferences['contentPreference']>('General');
+  protected sendOnEnter = signal(true);
 
   constructor() {
     this.prefs.load().subscribe({
@@ -39,6 +40,7 @@ export class Preferences {
         this.disableAutoplay.set(p.disableAutoplay);
         this.reduceNoise.set(p.reduceVisualNoise);
         this.contentPref.set(p.contentPreference);
+        this.sendOnEnter.set(p.sendMessageOnEnter);
         this.loading.set(false);
       },
       error: (err: unknown) => {
@@ -60,6 +62,7 @@ export class Preferences {
         disableAutoplay: this.disableAutoplay(),
         reduceVisualNoise: this.reduceNoise(),
         contentPreference: this.contentPref(),
+        sendMessageOnEnter: this.sendOnEnter(),
       })
       .subscribe({
         next: () => {

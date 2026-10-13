@@ -436,6 +436,7 @@ List of keywords with add/remove; plain explanation of effect.
 
 | **Angular** | `fc-preferences-panel` |
 | **Toggles** | HideFlashingMedia, ReduceMotion, DisableAutoplay, ReduceVisualNoise, ContentPreference |
+| **Second group** | SendMessageOnEnter (chat composer, defaults on) — separate from the accessibility group |
 | **API** | `PATCH /api/v1/users/me/preferences` |
 
 Each toggle explains what it does in plain language beside the control.

@@ -9,6 +9,12 @@ export interface UserPreferences {
   disableAutoplay: boolean;
   reduceVisualNoise: boolean;
   contentPreference: 'General' | 'Sensitive' | 'Explicit';
+  /**
+   * true → Enter sends, Shift+Enter newline. false → Enter newline, Ctrl/Cmd+Enter sends.
+   * Defaults to true server-side and in every fallback here, so the composer behaves the way
+   * it did before this preference existed while preferences are still loading.
+   */
+  sendMessageOnEnter: boolean;
 }
 
 export type UpdatePreferencesRequest = UserPreferences;

@@ -25,6 +25,12 @@ export class PreferencesService {
   readonly disableAutoplay = computed(() => this.prefs()?.disableAutoplay ?? true);
   readonly reduceVisualNoise = computed(() => this.prefs()?.reduceVisualNoise ?? false);
   readonly contentPreference = computed(() => this.prefs()?.contentPreference ?? 'General');
+  /**
+   * Read by the chat composer. Falls back to true while preferences are still loading, which
+   * is deliberate: the thread renders before preferences resolve, and defaulting to false here
+   * would briefly hand the user a composer whose Enter key does nothing.
+   */
+  readonly sendMessageOnEnter = computed(() => this.prefs()?.sendMessageOnEnter ?? true);
 
   /** Fetch once (shell init) and apply. Repeated calls reuse the loaded value. */
   load(): Observable<UserPreferences> {
@@ -51,6 +57,7 @@ export class PreferencesService {
         disableAutoplay: true,
         reduceVisualNoise: false,
         contentPreference: 'General',
+        sendMessageOnEnter: true,
       }
     );
   }

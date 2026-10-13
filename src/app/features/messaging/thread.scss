@@ -51,6 +51,32 @@
 /* The bubble sets pre-line for message text; the meta row and the menu chrome are not
    message text, so they opt back out or the template's own indentation renders as
    newlines. */
+/* The quoted parent inside a bubble. Muted and inset so it reads as context above the text
+   rather than as part of what was said. A deleted parent keeps the slot — swapping the label and
+   dropping the excerpt is quieter than removing the block, which would read as a layout bug. */
+.quote {
+  margin: 0 0 var(--fc-space-2);
+  padding: var(--fc-space-1) var(--fc-space-2);
+  border-left: 3px solid var(--fc-accent);
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-surface-2);
+  font-size: var(--fc-text-sm);
+  color: var(--fc-text-muted);
+  white-space: pre-line;
+  overflow-wrap: break-word;
+}
+
+.quote.deleted {
+  border-left-color: var(--fc-border);
+  font-style: italic;
+}
+
+.quote-label {
+  display: block;
+  font-weight: 600;
+  font-style: normal;
+}
+
 .meta {
   display: flex;
   gap: var(--fc-space-1);
@@ -159,6 +185,23 @@
   color: var(--fc-danger);
   font-size: var(--fc-text-sm);
   white-space: normal;
+}
+
+/* The wording currently on the server, shown inside the editor on a conflict. Quieter than
+   the draft above it: this is context for the decision, not the thing being edited. */
+.editor-current {
+  margin: 0 0 var(--fc-space-2);
+  padding: var(--fc-space-2);
+  background: var(--fc-surface-2);
+  border-left: 3px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  font-size: var(--fc-text-sm);
+  color: var(--fc-text-muted);
+  white-space: pre-line;
+}
+
+.editor-current-label {
+  font-weight: 600;
 }
 
 .confirm {
@@ -300,4 +343,287 @@
 
 .state {
   text-align: center;
+}
+
+/* Reactions -----------------------------------------------------------------------
+   The chip row and the picker are one button style in two places: chips show a count,
+   the picker does not, and only the picker sits on a raised panel. `:is()` keeps that
+   shared half written once — this file is close to the 4 kB per-component style budget. */
+
+.reactions,
+.picker {
+  list-style: none;
+  margin: var(--fc-space-1) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fc-space-1);
+  /* The bubble sets white-space: pre-line for message text; these hold glyphs and
+     counts, which must not inherit that wrapping. */
+  white-space: normal;
+}
+
+/* Opens in place rather than floating, so it can never be clipped by the scroll
+   container or land off-screen on a narrow phone. */
+.picker {
+  padding: var(--fc-space-1);
+  background: var(--fc-surface);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  box-shadow: var(--fc-shadow);
+}
+
+:is(.reactions, .picker) .chip {
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fc-space-1);
+  cursor: pointer;
+  background: var(--fc-surface);
+  color: var(--fc-text);
+  border: 1px solid var(--fc-border);
+  /* A pill: a count is a quantity, and the round shape reads as a toggle rather than
+     an action to send. */
+  border-radius: var(--fc-radius);
+  padding: 0 var(--fc-space-2);
+  min-height: 1.75rem;
+  /* Also the glyph's size — emoji inherit the button's font, and one size for both
+     reads more consistently than scaling the emoji up inside a smaller chip. */
+  font-size: var(--fc-text-base);
+  line-height: 1;
+}
+
+/* Your own reaction is highlighted; someone else's stays neutral but tappable, since
+   tapping it adds yours alongside theirs. */
+:is(.reactions, .picker) .chip.mine {
+  background: var(--fc-accent);
+  border-color: var(--fc-accent);
+  color: var(--fc-accent-contrast);
+}
+
+:is(.reactions, .picker) .chip:hover:not(:disabled) {
+  border-color: var(--fc-accent);
+}
+
+:is(.reactions, .picker) .chip:focus-visible {
+  outline: 2px solid var(--fc-accent);
+  outline-offset: 2px;
+}
+
+:is(.reactions, .picker) .chip:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Composer reply bar. Matches the quote block's language so the two read as the same idea —
+   one shows what is being replied to, the other shows what the message will reply to. */
+.replying {
+  display: flex;
+  align-items: baseline;
+  gap: var(--fc-space-2);
+  margin: 0;
+  padding: var(--fc-space-2);
+  border-left: 3px solid var(--fc-accent);
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-surface-2);
+  font-size: var(--fc-text-sm);
+  white-space: normal;
+}
+
+.replying-label {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.replying-text {
+  color: var(--fc-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.replying-cancel {
+  margin-left: auto;
+  font: inherit;
+  border: 0;
+  background: none;
+  color: var(--fc-text-muted);
+  cursor: pointer;
+  padding: 0 var(--fc-space-1);
+  flex-shrink: 0;
+}
+
+.replying-cancel:hover {
+  color: var(--fc-text);
+}
+
+/* A refusal is a decision, not a fault. Same shape as the generic send error so it reads as part
+   of the composer, distinct colour so it is not mistaken for "try again". */
+.send-error.refused {
+  color: var(--fc-text);
+  border-left: 3px solid var(--fc-warning);
+  background: var(--fc-surface-2);
+  padding: var(--fc-space-2);
+  border-radius: var(--fc-radius-sm);
+}
+
+// --- search ---------------------------------------------------------------------------
+// Sits above the thread and replaces it while active, so it is styled as a quiet toolbar rather
+// than something that competes with the conversation itself.
+
+.search {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+
+  input {
+    flex: 1;
+    // Native clear affordances would clear the value without telling the component, leaving the
+    // results panel showing something the box no longer says. The Clear button is the only way out.
+    &::-webkit-search-cancel-button {
+      appearance: none;
+    }
+  }
+
+  .clear {
+    white-space: nowrap;
+  }
+}
+
+.search-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  li {
+    border: 1px solid var(--fc-border, currentColor);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .who {
+    font-weight: 600;
+    margin-right: 0.5rem;
+  }
+
+  .when {
+    opacity: 0.7;
+    font-size: 0.85em;
+  }
+
+  .text {
+    margin: 0.25rem 0 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  // A hit can be an attachment-only message, which matched on... nothing: search is text-only, so
+  // in practice these never appear. Kept honest rather than rendering an empty result row.
+  .attachment-only {
+    opacity: 0.7;
+    font-style: italic;
+  }
+}
+
+.search-error {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+// --- date dividers -------------------------------------------------------------------
+// A rule with the day centred in it, which is the convention every chat client uses and needs no
+// explanation. Announced as a separator rather than a heading: it labels the run of messages below
+// it, it is not a section you navigate to.
+
+.day-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0 0.5rem;
+  color: var(--fc-muted, currentColor);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid currentColor;
+    opacity: 0.35;
+  }
+
+  // The rules must not read as the start of a message, so the label keeps its own background.
+  span {
+    background: var(--fc-surface, Canvas);
+    padding: 0 0.25rem;
+  }
+}
+
+// --- scrolling -----------------------------------------------------------------------
+
+// Sticky so the affordance is reachable without scrolling back to the bottom to find it — which
+// would be absurd, since the thing it fixes is that you are not at the bottom.
+.jump-latest {
+  position: sticky;
+  bottom: 0.5rem;
+  z-index: 1;
+  display: block;
+  margin: 0 auto 0.5rem;
+  border-radius: 999px;
+}
+
+// --- jumping to a search result -------------------------------------------------------
+
+.search-results .jump {
+  // A button that fills its row and reads as one target, rather than a row with a button inside.
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+
+  &:hover .hint,
+  &:focus-visible .hint {
+    text-decoration: underline;
+  }
+
+  .hint {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.8rem;
+    opacity: 0.7;
+  }
+}
+
+.parked {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.newer {
+  display: block;
+  margin: 0 auto 0.5rem;
+}
+
+// The message the reader asked to see. A ring rather than a background tint so it survives the
+// app's dark/light handling without needing a second set of colours.
+.bubble.jumped {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }

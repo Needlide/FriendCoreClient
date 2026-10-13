@@ -15,7 +15,9 @@ import {
   MESSAGE_DELETED_EVENT,
   MESSAGE_EDITED_EVENT,
   MESSAGE_EVENT,
+  MESSAGE_REACTION_EVENT,
   MessageDeletedPayload,
+  MessageReactionChangedPayload,
   MessageResponse,
   NOTIFICATION_EVENT,
   RealtimeNotification,
@@ -49,6 +51,7 @@ export class RealtimeService {
   private readonly messageSubject = new Subject<MessageResponse>();
   private readonly messageEditedSubject = new Subject<MessageResponse>();
   private readonly messageDeletedSubject = new Subject<MessageDeletedPayload>();
+  private readonly messageReactionSubject = new Subject<MessageReactionChangedPayload>();
   private readonly resyncSubject = new Subject<HubName>();
 
   /** A new realtime notification arrived (bump the badge; reconcile via GET /notifications). */
@@ -62,6 +65,11 @@ export class RealtimeService {
   readonly messageEdited$ = this.messageEditedSubject.asObservable();
   /** A message was soft-deleted. Drop it from the thread; there is no tombstone to render. */
   readonly messageDeleted$ = this.messageDeletedSubject.asObservable();
+  /**
+   * A reaction was added or taken back. Carries the emoji's whole new state (count 0 = drop
+   * the chip), so an open thread moves one chip rather than refetching a page for it.
+   */
+  readonly messageReaction$ = this.messageReactionSubject.asObservable();
   /** A hub (re)connected — reconcile the relevant REST resource to catch missed pushes. */
   readonly resync$ = this.resyncSubject.asObservable();
 
@@ -86,6 +94,9 @@ export class RealtimeService {
     );
     this.messaging.on(MESSAGE_DELETED_EVENT, (p: MessageDeletedPayload) =>
       this.messageDeletedSubject.next(p),
+    );
+    this.messaging.on(MESSAGE_REACTION_EVENT, (p: MessageReactionChangedPayload) =>
+      this.messageReactionSubject.next(p),
     );
 
     await Promise.all([

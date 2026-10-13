@@ -195,6 +195,34 @@ export class Notifications implements OnDestroy {
     return `${n.actor.displayName} ${this.actionText(n.type)}`;
   }
 
+  /**
+   * Where the notification is actually *about*, as a routerLink target.
+   *
+   * entityId means a different thing per type, which is why this cannot be one rule: the server
+   * sets it to the FollowerId, the PostId (for BOTH like and comment — a comment notification
+   * points at the post, not the comment), or the ConversationId respectively. Verified against
+   * NotificationEventHandlers rather than assumed, because guessing wrong yields a link to a
+   * 404.
+   */
+  protected targetLink(n: NotificationItem): unknown[] {
+    switch (n.type) {
+      // A message notification is about the conversation. Its entityId IS the conversation id,
+      // so it navigates straight to the thread — which is the whole point of the row being
+      // clickable, and was the gap: these rows previously linked only to the sender's profile.
+      case 'NewMessage':
+        return ['/messages', n.entityId];
+      // A comment notification carries the post id, not the comment id.
+      case 'NewComment':
+      case 'NewLike':
+        return ['/posts', n.entityId];
+      case 'NewFollower':
+        return ['/u', n.actor.username];
+      default:
+        // Unknown/newer type: the sender's profile is the only thing certainly correct.
+        return ['/u', n.actor.username];
+    }
+  }
+
   protected retry(): void {
     this.error.set(null);
     this.reload$.next();

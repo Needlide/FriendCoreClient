@@ -89,9 +89,19 @@ export const ConversationsEndpoints = {
   /** Find-or-create the 1:1 with the admin support inbox (no body). */
   support: '/conversations/support',
   messages: (id: string) => `/conversations/${id}/messages`,
+  /** Substring search over one conversation. Separate from `messages` so it is never routed to. */
+  search: (id: string) => `/conversations/${id}/messages/search`,
+  /** A two-way window around one message, for jumping to a search result. */
+  around: (conversationId: string, messageId: string) =>
+    `/conversations/${conversationId}/messages/${messageId}/around`,
   /** Scoped by conversation so a guessed message id is a 404, not a cross-thread write. */
   message: (conversationId: string, messageId: string) =>
     `/conversations/${conversationId}/messages/${messageId}`,
+  /** Toggles the caller's reaction. The emoji rides in the body, not the path: a glyph in a
+   *  route segment would arrive percent-encoded, and every proxy in between gets a vote on
+   *  whether it decodes cleanly. */
+  reactions: (conversationId: string, messageId: string) =>
+    `/conversations/${conversationId}/messages/${messageId}/reactions`,
   reportMessage: (conversationId: string, messageId: string) =>
     `/conversations/${conversationId}/messages/${messageId}/report`,
   markRead: (id: string) => `/conversations/${id}/read`,

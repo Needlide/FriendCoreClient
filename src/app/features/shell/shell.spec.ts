@@ -47,11 +47,40 @@ describe('Shell', () => {
     return { fixture, el: fixture.nativeElement as HTMLElement };
   }
 
-  it('connects realtime and shows the unread badge', () => {
+  /**
+   * The shell's four init reads. The conversations one is the messages badge's own load — it is a
+   * sum over conversations, so unlike notifications there is no single endpoint to bump.
+   */
+  function flushInitReads(unread = 0): void {
+    expectApi(http, '/notifications/unread-count').flush({ count: 0 });
+    expectApi(http, '/users/me/snooze').flush({ snoozedUntil: null });
+    expectApi(http, '/conversations').flush({
+      conversations: unread
+        ? [
+            {
+              id: 'c1',
+              otherParticipant: { id: 'u1', username: 'bob', displayName: 'Bob' },
+              lastMessageAt: new Date().toISOString(),
+              unreadCount: unread,
+            },
+          ]
+        : [],
+    });
+    expectApi(http, '/users/me/preferences').flush({
+      hideFlashingMedia: true,
+      reduceMotion: false,
+      disableAutoplay: true,
+      reduceVisualNoise: false,
+      contentPreference: 'General',
+    });
+  }
+
+  it('connects realtime and shows the notification badge', () => {
     const { fixture, el } = create();
     expect(realtime.connect).toHaveBeenCalled();
     expectApi(http, '/notifications/unread-count').flush({ count: 3 });
     expectApi(http, '/users/me/snooze').flush({ snoozedUntil: null });
+    expectApi(http, '/conversations').flush({ conversations: [] });
     // Shell also loads accessibility prefs (safe defaults apply until they land).
     expectApi(http, '/users/me/preferences').flush({
       hideFlashingMedia: true,
@@ -65,17 +94,52 @@ describe('Shell', () => {
     expect(bell.getAttribute('aria-label')).toContain('3 unread');
   });
 
+  it('shows a messages badge counting unread across conversations', async () => {
+    const { fixture, el } = create();
+    flushInitReads(4);
+    // The badge load resolves through firstValueFrom, so the store updates a microtask after the
+    // response — detecting changes synchronously here would assert against a badge that does not
+    // exist yet.
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const badge = el.querySelector('.nav-badge');
+    expect(badge, 'no badge rendered').not.toBeNull();
+    // The bare number means nothing read aloud, so the accessible text spells it out…
+    expect(badge!.querySelector('.fc-sr-only')?.textContent).toContain('4 unread messages');
+    // …and the visual number must not be announced a second time.
+    expect(badge!.querySelector('[aria-hidden="true"]')?.textContent).toBe('4');
+  });
+
+  it('credits the DNS provider in the footer', () => {
+    // FreeDNS provides the subdomain and asks for a text link in return. A single test so the
+    // attribution cannot be dropped by accident as unrelated chrome gets edited.
+    const { fixture, el } = create();
+    flushInitReads();
+    fixture.detectChanges();
+
+    const footer = el.querySelector('footer.site-footer');
+    expect(footer, 'no site footer rendered').not.toBeNull();
+
+    const link = footer!.querySelector<HTMLAnchorElement>('a');
+    expect(link?.textContent?.trim()).toBe('Free DNS');
+    expect(link?.getAttribute('href')).toBe('https://freedns.afraid.org/');
+    // Outbound link: without noopener the opened page gets a handle on this one.
+    expect(link?.getAttribute('rel')).toContain('noopener');
+  });
+
+  it('shows no messages badge when everything is read', async () => {
+    const { fixture, el } = create();
+    flushInitReads(0);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.nav-badge')).toBeNull();
+  });
+
   it('disconnects realtime before logging out, then leaves for login', () => {
     const { fixture, el } = create();
-    expectApi(http, '/notifications/unread-count').flush({ count: 0 });
-    expectApi(http, '/users/me/snooze').flush({ snoozedUntil: null });
-    expectApi(http, '/users/me/preferences').flush({
-      hideFlashingMedia: true,
-      reduceMotion: false,
-      disableAutoplay: true,
-      reduceVisualNoise: false,
-      contentPreference: 'General',
-    });
+    flushInitReads();
     fixture.detectChanges();
 
     const router = TestBed.inject(Router);

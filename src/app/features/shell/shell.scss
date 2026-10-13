@@ -98,5 +98,42 @@ nav a.active {
 }
 
 main {
-  min-height: calc(100dvh - 4rem);
+  // Shortened by the topbar AND the footer, so a short conversation never leaves the footer
+  // floating halfway up an otherwise empty page.
+  min-height: calc(100dvh - 4rem - 3rem);
+}
+
+.site-footer {
+  display: flex;
+  gap: 0.25rem;
+  align-items: baseline;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--fc-border, currentColor);
+  font-size: 0.8rem;
+  opacity: 0.75;
+
+  a {
+    // Underlined like any other link: a provider attribution that looks like a link is the whole
+    // point, and the underline is also what tells a keyboard user it is focusable.
+    color: inherit;
+  }
+}
+
+// Nav unread badge. A count, not a dot: the notification bell already covers "something is new",
+// and what this adds is the one thing it cannot say — how much is waiting.
+.nav-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--fc-danger, #b3261e);
+  color: #fff;
+  font-size: 0.75em;
+  line-height: 1.5;
+  vertical-align: middle;
+
+  // Capped at 99+ by the template; a wider number would stretch the nav on a busy account.
+  min-width: 1.5em;
+  text-align: center;
 }

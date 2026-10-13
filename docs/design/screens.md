@@ -329,6 +329,13 @@ Components: [`components.md`](components.md) · Copy rules: [`content-and-a11y.m
 
 Each: ✅ on, ✅ off, ✅ saving, ✅ error
 
+**Chat composer** (its own group, not under accessibility — a send-key binding is a composer
+setting, and the group above is labelled "Accessibility toggles"):
+
+| Toggle | API field | Default | Design note |
+|---|---|---|---|
+| Send with Enter | `SendMessageOnEnter` | `true` | On: Enter sends, Shift+Enter newline. Off: Enter newline, Ctrl+Enter or Cmd+Enter sends. Name both modifier spellings — Cmd is the key under a Mac user's spacebar. |
+
 ### Logout
 
 | | |

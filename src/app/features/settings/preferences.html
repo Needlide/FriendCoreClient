@@ -51,6 +51,21 @@
       </label>
     </div>
 
+    <!-- Its own group, not a fifth accessibility row: a send-key binding is a composer
+         setting, and the group above is labelled "Accessibility toggles", so adding it there
+         would make that label a lie. One Save still covers both groups, because the endpoint
+         is a full replace of the whole set. -->
+    <div class="toggles" role="group" aria-label="Chat composer">
+      <label>
+        <input type="checkbox" [(ngModel)]="sendOnEnter" />
+        <span
+          ><strong>Send with Enter</strong><br />When on, Enter sends your message and Shift+Enter
+          starts a new line. When off, Enter starts a new line and Ctrl+Enter — or Cmd+Enter on a
+          Mac — sends.</span
+        >
+      </label>
+    </div>
+
     <button type="button" class="fc-primary" [disabled]="saving()" (click)="save()">
       {{ saving() ? 'Saving…' : 'Save changes' }}
     </button>

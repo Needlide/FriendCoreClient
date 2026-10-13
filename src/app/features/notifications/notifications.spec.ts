@@ -49,13 +49,56 @@ describe('Notifications', () => {
     expect(el.textContent).toContain('Bob started following you');
   });
 
-  it('links the actor name to their profile', () => {
+  it('links the row to the notification about, which differs per type', () => {
+    // The whole row is one link now, because a notification is about its subject. entityId
+    // means something different for each type, so this is the case where a wrong assumption
+    // produces a link to a 404 rather than an obvious break.
+    const cases = [
+      { type: 'NewFollower', entityId: 'u1', href: '/u/bob' },
+      { type: 'NewLike', entityId: 'p1', href: '/posts/p1' },
+      // A comment notification carries the POST id, not the comment's — verified against
+      // NotificationEventHandlers, and the easiest of these four to get wrong.
+      { type: 'NewComment', entityId: 'p1', href: '/posts/p1' },
+      // The gap this fixes: a message notification used to link only to the sender's profile,
+      // so "Alice sent you a message" led nowhere near the conversation.
+      { type: 'NewMessage', entityId: 'c1', href: '/messages/c1' },
+      // An unknown future type still lands somewhere correct rather than nowhere.
+      { type: 'SomethingNew', entityId: 'zzz', href: '/u/bob' },
+    ];
+
+    for (const { type, entityId, href } of cases) {
+      const { fixture, el } = create();
+      expectApi(http, '/notifications').flush({
+        notifications: [
+          {
+            id: 'n1',
+            type,
+            actor: { userId: 'u1', username: 'bob', displayName: 'Bob', isVerified: false },
+            entityId,
+            isRead: false,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      });
+      fixture.detectChanges();
+
+      const link = el.querySelector('a.row-link');
+      expect(link?.getAttribute('href'), `${type} should link to ${href}`).toBe(href);
+      // The row text is the accessible name; the link must not announce anything extra.
+      expect(link?.textContent).toContain('Bob');
+      fixture.destroy();
+    }
+  });
+
+  it('offers no nested link inside a row link', () => {
     const { fixture, el } = create();
     expectApi(http, '/notifications').flush(list);
     fixture.detectChanges();
-    const link = el.querySelector('.body p a');
-    expect(link?.textContent).toContain('Bob');
-    expect(link?.getAttribute('href')).toBe('/u/bob');
+
+    // The actor is no longer an anchor, so there is nothing invalid to nest — and the subject
+    // always offers a route to the actor anyway.
+    expect(el.querySelector('.body p a')).toBeNull();
+    expect(el.querySelector('.row-link .actor')?.textContent).toContain('Bob');
   });
 
   it('mutes a type with a whole-set PATCH and adopts the echo', () => {
