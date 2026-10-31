@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard, guestGuard } from './core/auth/auth.guard';
 import { Shell } from './features/shell/shell';
 import { SettingsLayout } from './features/settings/settings-layout';
+import { AdminLayout } from './features/admin/admin-layout';
 
 /**
  * MVP route table (see docs/UI-Plan.md §1). Authenticated pages render INSIDE the
@@ -118,6 +119,45 @@ export const routes: Routes = [
       {
         path: 'help',
         loadComponent: () => import('./features/help/help').then((m) => m.Help),
+      },
+      {
+        path: 'admin',
+        component: AdminLayout,
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            redirectTo: 'dashboard',
+          },
+          {
+            path: 'dashboard',
+            loadComponent: () =>
+              import('./features/admin/admin-dashboard/admin-dashboard').then((m) => m.AdminDashboard),
+          },
+          {
+            path: 'reports',
+            loadComponent: () =>
+              import('./features/admin/reports/reports').then((m) => m.Reports),
+          },
+          {
+            path: 'appeals',
+            loadComponent: () =>
+              import('./features/admin/appeals/appeals').then((m) => m.Appeals),
+          },
+          {
+            path: 'users',
+            loadComponent: () => import('./features/admin/users/users').then((m) => m.Users),
+          },
+          {
+            path: 'tags',
+            loadComponent: () => import('./features/admin/tags/tags').then((m) => m.Tags),
+          },
+          {
+            path: 'audit-log',
+            loadComponent: () =>
+              import('./features/admin/audit-log/audit-log').then((m) => m.AuditLog),
+          },
+        ],
       },
     ],
   },

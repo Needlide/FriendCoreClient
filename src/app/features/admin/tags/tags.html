@@ -1,0 +1,46 @@
+<h1>Tag queue</h1>
+<p class="lede">
+  Newly created tags sit at PendingReview until a moderator approves them. Without this queue
+  every new tag reads "you're first" — autocomplete hides pending tags by design
+  (<code>test/issues.md</code> #1). Approve, archive, or ban.
+</p>
+
+@if (loading()) {
+  <p role="status">Loading…</p>
+} @else if (error()) {
+  <fc-auth-error [error]="error()" context="generic" />
+  <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
+} @else if (tags().length === 0) {
+  <p class="muted">No tags pending review.</p>
+} @else {
+  <table class="queue">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Slug</th>
+        <th>Created by</th>
+        <th>Created</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (t of tags(); track t.tagId) {
+        <tr>
+          <td class="name"><strong>{{ t.name }}</strong></td>
+          <td class="slug">{{ t.slug }}</td>
+          <td class="creator">{{ t.creatorUsername ?? 'unknown' }}</td>
+          <td><time [attr.datetime]="t.createdAt">{{ t.createdAt | relativeTime }}</time></td>
+          <td class="actions">
+            @if (moderating() !== t.tagId) {
+              <button type="button" class="fc-tag-action" (click)="moderate(t.tagId, 'Approve')">Approve</button>
+              <button type="button" class="fc-tag-action" (click)="moderate(t.tagId, 'Archive')">Archive</button>
+              <button type="button" class="fc-tag-action fc-tag-action-ban" (click)="moderate(t.tagId, 'Ban')">Ban</button>
+            } @else {
+              <span class="muted small">Processing…</span>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

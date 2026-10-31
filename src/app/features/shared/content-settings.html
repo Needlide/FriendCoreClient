@@ -1,0 +1,57 @@
+<dialog #dialog class="drawer">
+  <header class="drawer-head">
+    <h2>Content settings</h2>
+    <button type="button" class="close" (click)="close()" aria-label="Close content settings">✕</button>
+  </header>
+
+  <section class="drawer-body">
+    <p class="lede">
+      Tell readers what's in this image before they see it. Flags are saved with the image
+      and are visible to moderators; readers see a warning placeholder first and choose
+      whether to show it. This is your own declaration; a moderator can flag the image
+      independently.
+    </p>
+
+    <div class="toggle-group">
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [(ngModel)]="flashing"
+          [ngModelOptions]="{ standalone: true }"
+        />
+        <span class="label">Flashing lights or intense motion</span>
+        <fc-tooltip [text]="FLASHING_HELP" label="What does this flag do?" />
+      </label>
+
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [(ngModel)]="arachnophobia"
+          [ngModelOptions]="{ standalone: true }"
+        />
+        <span class="label">Spiders or arachnids</span>
+        <fc-tooltip [text]="ARACHNOPHOBIA_HELP" label="What does this flag do?" />
+      </label>
+
+      <label class="toggle">
+        <input
+          type="checkbox"
+          [(ngModel)]="explicit"
+          [ngModelOptions]="{ standalone: true }"
+        />
+        <span class="label">Explicit or sexually suggestive content</span>
+        <fc-tooltip [text]="EXPLICIT_HELP" label="What does this flag do?" />
+      </label>
+    </div>
+
+    <p class="note small">
+      These are your own declarations. They are stored with the image and shown to
+      moderators. Readers see a warning placeholder for arachnid and explicit media by
+      default, and for flashing or intense-motion media unless they turned that warning off.
+    </p>
+  </section>
+
+  <footer class="drawer-foot">
+    <button type="button" class="fc-secondary" (click)="close()">Done</button>
+  </footer>
+</dialog>

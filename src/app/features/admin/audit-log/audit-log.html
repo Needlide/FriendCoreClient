@@ -1,0 +1,41 @@
+<h1>Audit log</h1>
+<p class="lede">
+  Every moderator action, immutable: who did what, to whom, why, and from where.
+  Newest first. The server writes the log entry in the same transaction as the action.
+</p>
+
+@if (loading()) {
+  <p role="status">Loading…</p>
+} @else if (error()) {
+  <fc-auth-error [error]="error()" context="generic" />
+  <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
+} @else if (entries().length === 0) {
+  <p class="muted">No moderation actions recorded yet.</p>
+} @else {
+  <table class="log">
+    <thead>
+      <tr>
+        <th>When</th>
+        <th>Moderator</th>
+        <th>Action</th>
+        <th>Target</th>
+        <th>Reason</th>
+        <th>IP</th>
+        <th>Report</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (e of entries(); track e.id) {
+        <tr>
+          <td><time [attr.datetime]="e.createdAt">{{ e.createdAt | relativeTime }}</time></td>
+          <td>{{ e.moderator.username }}</td>
+          <td class="action">{{ e.action }}</td>
+          <td class="target">{{ e.targetType }} {{ e.targetId }}</td>
+          <td class="reason">{{ e.reason }}</td>
+          <td class="ip">{{ e.ipAddress ?? '—' }}</td>
+          <td class="report">{{ e.relatedReportId ?? '—' }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}

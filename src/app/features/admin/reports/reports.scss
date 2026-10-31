@@ -1,0 +1,213 @@
+.lede {
+  color: var(--fc-text-muted);
+  margin-bottom: var(--fc-space-4);
+}
+
+.queue {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--fc-space-6);
+}
+
+.queue th {
+  text-align: left;
+  font-size: var(--fc-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fc-text-muted);
+  padding: var(--fc-space-2) var(--fc-space-3);
+  border-bottom: 1px solid var(--fc-border);
+}
+
+.queue td {
+  padding: var(--fc-space-2) var(--fc-space-3);
+  border-bottom: 1px solid var(--fc-border);
+  font-size: var(--fc-text-sm);
+  vertical-align: top;
+}
+
+.queue tr:hover {
+  background: var(--fc-surface-2);
+}
+
+.priority {
+  font-weight: 700;
+  font-size: var(--fc-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.priority.High { color: var(--fc-danger); }
+.priority.Medium { color: var(--fc-warning); }
+.priority.Low { color: var(--fc-text-muted); }
+
+.target .id {
+  display: block;
+  font-size: var(--fc-text-xs);
+  color: var(--fc-text-muted);
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.reporter {
+  color: var(--fc-text-muted);
+}
+
+.note {
+  color: var(--fc-text-muted);
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actions button {
+  padding: var(--fc-space-1) var(--fc-space-2);
+  font-size: var(--fc-text-sm);
+}
+
+/* ── Detail panel ── */
+
+.detail-panel {
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius);
+  padding: var(--fc-space-4);
+  background: var(--fc-surface);
+  margin-bottom: var(--fc-space-4);
+}
+
+.detail-panel h2 {
+  margin: 0 0 var(--fc-space-3) 0;
+  font-size: var(--fc-text-lg);
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--fc-space-3);
+  margin-bottom: var(--fc-space-4);
+}
+
+.meta {
+  display: contents;
+}
+
+.meta-label {
+  font-size: var(--fc-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fc-text-muted);
+  margin-bottom: var(--fc-space-1);
+}
+
+.meta-value {
+  margin: 0;
+  font-size: var(--fc-text-sm);
+  color: var(--fc-text);
+}
+
+.meta.full {
+  grid-column: 1 / -1;
+}
+
+.subject {
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius);
+  padding: var(--fc-space-3);
+  margin-bottom: var(--fc-space-4);
+  background: var(--fc-surface-2);
+}
+
+.subject h3 {
+  margin: 0 0 var(--fc-space-2) 0;
+  font-size: var(--fc-text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fc-text-muted);
+}
+
+.subject-kind {
+  font-size: var(--fc-text-xs);
+  color: var(--fc-text-muted);
+  margin-bottom: var(--fc-space-1);
+}
+
+.subject-content {
+  margin: 0 0 var(--fc-space-2) 0;
+  padding: var(--fc-space-2) var(--fc-space-3);
+  border-left: 3px solid var(--fc-accent);
+  background: var(--fc-surface);
+  font-size: var(--fc-text-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.subject-byline {
+  margin: 0;
+  font-size: var(--fc-text-xs);
+  color: var(--fc-text-muted);
+}
+
+.subject-none {
+  border-style: dashed;
+  background: transparent;
+}
+
+.subject-none .subject-content {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.resolve {
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius);
+  padding: var(--fc-space-4);
+  background: var(--fc-surface);
+}
+
+.resolve h3 {
+  margin: 0 0 var(--fc-space-2) 0;
+  font-size: var(--fc-text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fc-text-muted);
+}
+
+.resolve-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--fc-space-3);
+}
+
+.resolve-form label {
+  font-size: var(--fc-text-sm);
+  font-weight: 600;
+  color: var(--fc-text);
+}
+
+.resolve-form select,
+.resolve-form input,
+.resolve-form textarea {
+  width: 100%;
+  padding: var(--fc-space-2);
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  font-size: var(--fc-text-sm);
+  font-family: inherit;
+  background: var(--fc-surface);
+}
+
+.resolve-form textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.resolve-actions {
+  display: flex;
+  gap: var(--fc-space-2);
+  margin-top: var(--fc-space-1);
+}
+
+.small {
+  font-size: var(--fc-text-xs);
+}

@@ -88,8 +88,7 @@ describe('PostCard', () => {
       media: [
         {
           id: 'm1',
-          hasFlashingWarning: true,
-          hasIntenseMotionWarning: false,
+          safetyFlags: { flashing: true },
           variants: [],
           gateReason: 'Flashing',
         },
@@ -126,15 +125,14 @@ describe('MediaViewer', () => {
   // an unflagged payload is what a plain post looks like.
   const flagged = {
     id: 'm1',
-    hasFlashingWarning: true,
-    hasIntenseMotionWarning: false,
+    safetyFlags: { flashing: true },
     variants: [{ type: 'Medium', url: 'https://cdn/y.webp', widthPx: 800, heightPx: 600 }],
     gateReason: null,
   };
 
   it('renders safe media directly', () => {
     const fixture = TestBed.createComponent(MediaViewer);
-    fixture.componentRef.setInput('media', { ...flagged, hasFlashingWarning: false });
+    fixture.componentRef.setInput('media', { ...flagged, safetyFlags: {} });
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('img')?.getAttribute('src')).toBe('https://cdn/y.webp');
@@ -145,6 +143,7 @@ describe('MediaViewer', () => {
     TestBed.inject(PreferencesService)
       .update({
         hideFlashingMedia: false,
+        hideArachnidMedia: false,
         reduceMotion: false,
         disableAutoplay: true,
         reduceVisualNoise: false,
@@ -156,6 +155,7 @@ describe('MediaViewer', () => {
     expect(patch.request.method).toBe('PATCH');
     patch.flush({
       hideFlashingMedia: false,
+      hideArachnidMedia: false,
       reduceMotion: false,
       disableAutoplay: true,
       reduceVisualNoise: false,

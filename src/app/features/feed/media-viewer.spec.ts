@@ -23,8 +23,7 @@ describe('MediaViewer', () => {
 
   const plain: PostMedia = {
     id: 'm1',
-    hasFlashingWarning: false,
-    hasIntenseMotionWarning: false,
+    safetyFlags: {},
     variants,
     gateReason: null,
   };
@@ -32,8 +31,7 @@ describe('MediaViewer', () => {
   /** What the API now returns for flashing media: the flags, the reason, and no locations. */
   const gated: PostMedia = {
     id: 'm1',
-    hasFlashingWarning: true,
-    hasIntenseMotionWarning: false,
+    safetyFlags: { flashing: true },
     variants: [],
     gateReason: 'Flashing',
   };
@@ -41,19 +39,51 @@ describe('MediaViewer', () => {
   /** Motion-gated media: only ever a GIF, and governed by ReduceMotion rather than flashing. */
   const motionGated: PostMedia = {
     id: 'm1',
-    hasFlashingWarning: false,
-    hasIntenseMotionWarning: true,
+    safetyFlags: { intenseMotion: true },
     variants: [],
     gateReason: 'IntenseMotion',
   };
 
+  const arachnophobiaGated: PostMedia = {
+    id: 'm1',
+    safetyFlags: { arachnophobia: true },
+    variants: [],
+    gateReason: 'Arachnophobia',
+  };
+
+  const explicitGated: PostMedia = {
+    id: 'm1',
+    safetyFlags: { explicit: true },
+    variants: [],
+    gateReason: 'Explicit',
+  };
+
+  /** Both consent hazards at once: the label picks one, but consent must cover both. */
+  const arachnophobiaAndExplicitGated: PostMedia = {
+    id: 'm1',
+    safetyFlags: { arachnophobia: true, explicit: true },
+    variants: [],
+    gateReason: 'Arachnophobia',
+  };
+
+  const flashingAndArachnophobiaGated: PostMedia = {
+    id: 'm1',
+    safetyFlags: { flashing: true, arachnophobia: true },
+    variants: [],
+    gateReason: 'Flashing',
+  };
+
   let http: HttpTestingController;
   let hideFlashing = true;
+  let hideArachnids = true;
   let reduceMotion = false;
+  let contentPreference: 'General' | 'Sensitive' | 'Explicit' = 'General';
 
   beforeEach(() => {
     hideFlashing = true;
+    hideArachnids = true;
     reduceMotion = false;
+    contentPreference = 'General';
     TestBed.configureTestingModule({
       imports: [MediaViewer],
       providers: [provideHttpClient(), provideHttpClientTesting()],
@@ -61,7 +91,12 @@ describe('MediaViewer', () => {
     // The component auto-consents for a reader who has opted OUT, so the preference has to be
     // controllable per test.
     TestBed.overrideProvider(PreferencesService, {
-      useValue: { hideFlashingMedia: () => hideFlashing, reduceMotion: () => reduceMotion },
+      useValue: {
+        hideFlashingMedia: () => hideFlashing,
+        hideArachnidMedia: () => hideArachnids,
+        reduceMotion: () => reduceMotion,
+        contentPreference: () => contentPreference,
+      },
     });
     http = TestBed.inject(HttpTestingController);
   });
@@ -249,5 +284,73 @@ describe('MediaViewer', () => {
     // who asked for less motion but never opted out of flashing.
     http.expectNone((r) => r.url.includes('/reveal'));
     fixture.detectChanges();
+  });
+
+  it('names the arachnophobia hazard rather than falling back to the generic copy', () => {
+    const { el } = show(arachnophobiaGated);
+
+    expect(el.querySelector('.title')?.textContent).toBe('Spiders or arachnids');
+    expect(el.querySelector('.body')?.textContent).toContain('spiders');
+    http.expectNone((r) => r.url.includes('/reveal'));
+  });
+
+  it('names explicit content rather than falling back to the generic copy', () => {
+    const { el } = show(explicitGated);
+
+    expect(el.querySelector('.title')?.textContent).toBe('Explicit content');
+    expect(el.querySelector('.body')?.textContent).toContain('nudity');
+    http.expectNone((r) => r.url.includes('/reveal'));
+  });
+
+  it('auto-consents arachnophobia only when the reader turned the warning off', () => {
+    // Default: ask. HideArachnidMedia is an opt-out preference, so it starts on.
+    const asked = show(arachnophobiaGated);
+    http.expectNone((r) => r.url.includes('/reveal'));
+    expect(asked.el.querySelector('.placeholder')).not.toBeNull();
+
+    hideArachnids = false;
+    const optedOut = show(arachnophobiaGated);
+    optedOut.fixture.detectChanges();
+    flushReveal();
+    optedOut.fixture.detectChanges();
+
+    expect(optedOut.el.querySelector('img')?.getAttribute('src')).toBe('https://cdn/medium.webp');
+  });
+
+  it('auto-consents explicit content only for a reader who chose it', () => {
+    // General/Sensitive are not consent: they still get the placeholder and must click.
+    const general = show(explicitGated);
+    http.expectNone((r) => r.url.includes('/reveal'));
+    expect(general.el.querySelector('.placeholder')).not.toBeNull();
+
+    contentPreference = 'Explicit';
+    const optedIn = show(explicitGated);
+    optedIn.fixture.detectChanges();
+    flushReveal();
+    optedIn.fixture.detectChanges();
+
+    expect(optedIn.el.querySelector('img')?.getAttribute('src')).toBe('https://cdn/medium.webp');
+  });
+
+  it('does not auto-reveal explicit media just because the arachnid warning is off', () => {
+    // The server names one reason, but the item carries both flags. Turning off the arachnid
+    // warning is not consent to explicit content, so the reader must still be asked.
+    hideArachnids = false;
+    contentPreference = 'General';
+    const { el } = show(arachnophobiaAndExplicitGated);
+
+    http.expectNone((r) => r.url.includes('/reveal'));
+    expect(el.querySelector('.placeholder')).not.toBeNull();
+  });
+
+  it('does not auto-reveal arachnid media just because the flashing warning is off', () => {
+    // Same rule in the other direction: the flashing preference must not answer the
+    // arachnophobia question.
+    hideFlashing = false;
+    hideArachnids = true;
+    const { el } = show(flashingAndArachnophobiaGated);
+
+    http.expectNone((r) => r.url.includes('/reveal'));
+    expect(el.querySelector('.placeholder')).not.toBeNull();
   });
 });

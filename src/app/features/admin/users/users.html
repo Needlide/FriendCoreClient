@@ -1,0 +1,182 @@
+<h1>User accounts</h1>
+<p class="lede">Look up any account by username. View its enforcement state and moderation history,
+then act on it (warning, suspension, ban, legal referral) or change its role.</p>
+
+<section class="lookup">
+  <label class="lookup-label">Username</label>
+  <input
+    type="text"
+    [(ngModel)]="username"
+    [ngModelOptions]="{ standalone: true }"
+    placeholder="e.g. feetenjoyer"
+    (keyup.enter)="lookup()"
+  />
+  <button
+    type="button"
+    class="fc-primary"
+    (click)="lookup()"
+    [disabled]="searching() || username().trim().length === 0"
+  >
+    {{ searching() ? 'Looking up…' : 'Look up' }}
+  </button>
+  @if (error() && !account()) {
+    <fc-auth-error [error]="error()" context="generic" />
+  }
+</section>
+
+@if (account(); as acct) {
+  <section class="account-card">
+    <h2>{{ acct.username }}</h2>
+
+    <div class="meta-grid">
+      <div class="meta">
+        <label class="meta-label">Display name</label>
+        <p class="meta-value">{{ acct.displayName }}</p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Role</label>
+        <p class="meta-value role">{{ acct.role }}</p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Verified</label>
+        <p class="meta-value">{{ acct.isVerified ? 'Yes' : 'No' }}</p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Banned</label>
+        <p class="meta-value">{{ acct.isBanned ? 'Yes' : 'No' }}</p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Suspended until</label>
+        <p class="meta-value">{{ acct.suspendedUntil ?? '—' }}</p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Member since</label>
+        <p class="meta-value"><time [attr.datetime]="acct.createdAt">{{ acct.createdAt | relativeTime }}</time></p>
+      </div>
+    </div>
+
+    @if (acct.moderationHistory.length > 0) {
+      <section class="history">
+        <h3>Moderation history</h3>
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Moderator</th>
+              <th>Target</th>
+              <th>Reason</th>
+              <th>When</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (e of acct.moderationHistory; track e.id) {
+              <tr>
+                <td class="action">{{ e.action }}</td>
+                <td>{{ e.moderator.username }}</td>
+                <td>{{ e.targetType }} {{ e.targetId }}</td>
+                <td class="reason">{{ e.reason }}</td>
+                <td><time [attr.datetime]="e.createdAt">{{ e.createdAt | relativeTime }}</time></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+
+    @if (acct.moderationHistory.length === 0) {
+      <p class="muted small">No moderation history on this account.</p>
+    }
+  </section>
+
+  <section class="actions">
+    <h3>Act on user</h3>
+    <p class="muted small">
+      A reason is mandatory and is written to the audit log. The user may appeal the outcome.
+    </p>
+
+    <form class="action-form" (submit)="actOnUser(); $event.preventDefault()">
+      <label>Action</label>
+      <select
+        [ngModel]="actAction()"
+        (ngModelChange)="actAction.set($event)"
+        [ngModelOptions]="{ standalone: true }"
+      >
+        @for (a of USER_ACTIONS; track a.value) {
+          <option [value]="a.value">{{ a.label }}</option>
+        }
+      </select>
+
+      @if (needsSuspensionDays(actAction())) {
+        <label>Suspension days (1–365)</label>
+        <input
+          type="number"
+          min="1"
+          max="365"
+          [ngModel]="actSuspensionDays()"
+          (ngModelChange)="actSuspensionDays.set($event)"
+          [ngModelOptions]="{ standalone: true }"
+        />
+      }
+
+      <label>Reason</label>
+      <textarea
+        [(ngModel)]="actReason"
+        [ngModelOptions]="{ standalone: true }"
+        rows="3"
+        placeholder="Why this action?"
+      ></textarea>
+
+      <div class="form-actions">
+        <button type="button" class="fc-secondary" (click)="actReason.set('')">Clear</button>
+        <button
+          type="submit"
+          class="fc-primary"
+          [disabled]="acting() || actReason().trim().length === 0"
+        >
+          {{ acting() ? 'Acting…' : 'Take action' }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="actions role-actions">
+    <h3>Change role</h3>
+    <p class="muted small">
+      Admin-only. Changes the account's site role (Moderator, SeniorModerator, Admin).
+      The server rejects non-admin callers with 403.
+    </p>
+
+    <form class="action-form" (submit)="changeRole(); $event.preventDefault()">
+      <label>New role</label>
+      <select
+        [ngModel]="roleAction()"
+        (ngModelChange)="roleAction.set($event)"
+        [ngModelOptions]="{ standalone: true }"
+      >
+        <option value="User">User</option>
+        <option value="Moderator">Moderator</option>
+        <option value="SeniorModerator">Senior Moderator</option>
+        <option value="Admin">Admin</option>
+      </select>
+
+      <label>Reason</label>
+      <textarea
+        [(ngModel)]="roleReason"
+        [ngModelOptions]="{ standalone: true }"
+        rows="3"
+        placeholder="Why this role change?"
+      ></textarea>
+
+      <div class="form-actions">
+        <button type="button" class="fc-secondary" (click)="roleReason.set('')">Clear</button>
+        <button
+          type="submit"
+          class="fc-primary"
+          [disabled]="roleChanging() || roleReason().trim().length === 0"
+        >
+          {{ roleChanging() ? 'Changing…' : 'Change role' }}
+        </button>
+      </div>
+    </form>
+  </section>
+}

@@ -5,6 +5,7 @@ import { configureAuthTestBed, expectApi } from '../auth/test-utils';
 
 const serverPrefs = {
   hideFlashingMedia: true,
+  hideArachnidMedia: true,
   reduceMotion: false,
   disableAutoplay: true,
   reduceVisualNoise: false,
@@ -55,6 +56,22 @@ describe('Preferences page', () => {
     expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toMatchObject({ reduceMotion: true, hideFlashingMedia: true });
     req.flush({ ...serverPrefs, reduceMotion: true });
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Saved.');
+  });
+
+  it('saves the arachnophobia warning toggle as part of the whole set', async () => {
+    const { fixture, el } = create();
+    expectApi(http, '/users/me/preferences').flush(serverPrefs);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    toggle(el, 'Hide spiders and arachnids').click();
+    el.querySelector<HTMLButtonElement>('.fc-primary')!.click();
+
+    const req = expectApi(http, '/users/me/preferences');
+    expect(req.request.body).toMatchObject({ hideArachnidMedia: false, hideFlashingMedia: true });
+    req.flush({ ...serverPrefs, hideArachnidMedia: false });
     fixture.detectChanges();
     expect(el.textContent).toContain('Saved.');
   });

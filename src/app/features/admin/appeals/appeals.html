@@ -1,0 +1,120 @@
+<h1>Appeal queue</h1>
+<p class="lede">
+  Users can appeal moderation actions taken on their account. Appeals are reviewed by a
+  different moderator than the one who enforced. Sort by deadline (soonest first), then age.
+</p>
+
+@if (loading()) {
+  <p role="status">Loading…</p>
+} @else if (error()) {
+  <fc-auth-error [error]="error()" context="generic" />
+  <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
+} @else if (appeals().length === 0) {
+  <p class="muted">No pending appeals.</p>
+} @else {
+  <table class="queue">
+    <thead>
+      <tr>
+        <th>Deadline</th>
+        <th>Status</th>
+        <th>Appellant</th>
+        <th>Reason</th>
+        <th>Filed</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (a of appeals(); track a.id) {
+        <tr>
+          <td>
+            <time [attr.datetime]="a.deadline">{{ a.deadline | relativeTime }}</time>
+          </td>
+          <td class="status">{{ a.status }}</td>
+          <td>{{ a.appellant.username }}</td>
+          <td class="reason">{{ a.reason }}</td>
+          <td><time [attr.datetime]="a.createdAt">{{ a.createdAt | relativeTime }}</time></td>
+          <td class="actions">
+            <button type="button" class="fc-secondary" (click)="open(a)">Review</button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}
+
+/* ── Review panel ── */
+
+@if (selected(); as appeal) {
+  <div class="detail-panel">
+    <button type="button" class="fc-secondary" (click)="close()">Back to queue</button>
+
+    <h2>Appeal {{ appeal.id }}</h2>
+
+    <div class="meta-grid">
+      <div class="meta">
+        <label class="meta-label">Status</label>
+        <p class="meta-value">{{ appeal.status }}</p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Appellant</label>
+        <p class="meta-value">{{ appeal.appellant.username }}</p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Deadline</label>
+        <p class="meta-value"><time [attr.datetime]="appeal.deadline">{{ appeal.deadline | relativeTime }}</time></p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Filed</label>
+        <p class="meta-value"><time [attr.datetime]="appeal.createdAt">{{ appeal.createdAt | relativeTime }}</time></p>
+      </div>
+      <div class="meta full">
+        <label class="meta-label">Appellant's reason</label>
+        <p class="meta-value">{{ appeal.reason }}</p>
+      </div>
+    </div>
+
+    <section class="review">
+      <h3>Review appeal</h3>
+      <p class="muted small">
+        Reviewed by a different moderator. Outcome is recorded in the audit log — the
+        appellant is notified of the result but not of which moderator reviewed it.
+      </p>
+
+      <form class="review-form" (submit)="review(); $event.preventDefault()">
+        <label>Outcome</label>
+        <select
+          [ngModel]="reviewOutcome()"
+          (ngModelChange)="reviewOutcome.set($event)"
+          [ngModelOptions]="{ standalone: true }"
+        >
+          @for (o of APPEAL_OUTCOMES; track o.value) {
+            <option [value]="o.value">{{ o.label }}</option>
+          }
+        </select>
+
+        <label>Review note</label>
+        <textarea
+          [(ngModel)]="reviewNote"
+          [ngModelOptions]="{ standalone: true }"
+          rows="3"
+          placeholder="Why this outcome?"
+        ></textarea>
+
+        @if (reviewError()) {
+          <fc-auth-error [error]="reviewError()" context="generic" />
+        }
+
+        <div class="resolve-actions">
+          <button type="button" class="fc-secondary" (click)="close()">Cancel</button>
+          <button
+            type="submit"
+            class="fc-primary"
+            [disabled]="reviewing() === appeal.id || reviewNote().trim().length === 0 || isOutcomeDisabled(reviewOutcome())"
+          >
+            {{ reviewing() === appeal.id ? 'Reviewing…' : 'Review appeal' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

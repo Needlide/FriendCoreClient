@@ -18,11 +18,12 @@ import { MediaService } from './media.service';
 /**
  * Renders one attached image.
  *
- * The flashing / intense-motion gate (§7.4, content-and-a11y.md §4) is enforced by the
+ * The media-safety gate (§7.4, content-and-a11y.md §4) is enforced by the
  * SERVER: flagged media arrives with no variant URLs at all, so there is nothing to render
- * until this component asks for them. That is deliberate — the old design shipped the flags
- * and let each surface decide, so a surface that forgot would quietly serve the image with
- * nothing to catch the miss. Here a missed gate degrades to a broken image.
+ * until this component asks for them. That covers flashing, intense motion, arachnophobia,
+ * and explicit content. That is deliberate — the old design shipped the flags and let each
+ * surface decide, so a surface that forgot would quietly serve the image with nothing to
+ * catch the miss. Here a missed gate degrades to a broken image.
  *
  * So the placeholder is not a local `if`: it is the absence of data. There is no <img src>
  * until POST /media/{id}/reveal comes back authorized, so the browser never even requests
@@ -79,9 +80,9 @@ export class MediaViewer {
    * Auto-consent for a reader who has already turned the relevant protection OFF.
    *
    * Which preference is relevant comes from the server's `gateReason`, not from the booleans:
-   * a photosensitivity hazard is governed by HideFlashingMedia, while intense motion is a
-   * vestibular nuisance governed by ReduceMotion. Asking about the wrong one would either nag
-   * someone who already opted out, or silently show motion to someone who asked for less of it.
+   * flashing is governed by HideFlashingMedia, arachnophobia by HideArachnidMedia, and explicit
+   * content by the reader's ContentPreference. Asking about the wrong one would either nag
+   * someone who already opted out, or silently show a hazard to someone who asked not to see it.
    *
    * The request still goes to the server, so this is not the client choosing to serve a hazard —
    * it is the client not asking a question that has already been answered.
@@ -97,7 +98,7 @@ export class MediaViewer {
   /**
    * True when the reader has already answered this question, so re-asking would only nag.
    *
-   * The two hazards are NOT symmetrical here, and getting that wrong is a privacy bug:
+   * The hazards are NOT symmetrical here, and getting that wrong is a privacy bug:
    *
    *  - Flashing is governed by HideFlashingMedia, which DEFAULTS TRUE. It is an opt-OUT
    *    preference, so switching it off is a deliberate "show me anyway" and therefore consent.
@@ -107,10 +108,30 @@ export class MediaViewer {
    *    motion to every reader by default, which is precisely the opposite of the protection.
    *    Motion therefore always requires an explicit click until a real opt-out preference
    *    exists (see the open question in docs/claude.md).
+   *
+   *  - Arachnophobia is opt-out like flashing: HideArachnidMedia defaults TRUE, so switching
+   *    it off is consent.
+   *
+   *  - Explicit content is opt-in: a reader who chose "Everything, including explicit" as
+   *    their ContentPreference has already said yes. Everyone else still gets the placeholder
+   *    and can consent per image.
    */
   private readerAcceptsGate(reason: string | null): boolean {
     if (!reason) return true; // nothing withheld, or the server did not say why
-    return reason.includes('Flashing') && !this.prefs.hideFlashingMedia();
+
+    // Consent must cover every gated hazard on the item, not just the one the server named in
+    // gateReason. Priority decides which label is shown; it must not let one preference answer
+    // for another (an image can be both arachnophobia and explicit, for example).
+    const flags = this.media().safetyFlags;
+    if (flags['explicit'] && this.prefs.contentPreference() !== 'Explicit') return false;
+    if (flags['arachnophobia'] && this.prefs.hideArachnidMedia()) return false;
+    if (flags['flashing'] && this.prefs.hideFlashingMedia()) return false;
+
+    if (reason === 'IntenseMotion') return false;
+    if (reason.includes('Flashing')) return !this.prefs.hideFlashingMedia();
+    if (reason === 'Arachnophobia') return !this.prefs.hideArachnidMedia();
+    if (reason === 'Explicit') return this.prefs.contentPreference() === 'Explicit';
+    return false;
   }
 
   /**
@@ -126,6 +147,10 @@ export class MediaViewer {
         return 'Fast movement';
       case 'FlashingAndIntenseMotion':
         return 'Flashing lights and fast movement';
+      case 'Arachnophobia':
+        return 'Spiders or arachnids';
+      case 'Explicit':
+        return 'Explicit content';
       default:
         return 'Sensitive media';
     }
@@ -139,8 +164,12 @@ export class MediaViewer {
         return 'This animation moves a lot, which can be uncomfortable.';
       case 'FlashingAndIntenseMotion':
         return 'This image may contain flashing lights and fast movement.';
+      case 'Arachnophobia':
+        return 'This image may contain spiders or other arachnids, which can be distressing.';
+      case 'Explicit':
+        return 'This image may contain nudity or sexually explicit material.';
       default:
-        return 'This media may contain flashing lights or intense motion.';
+        return 'This media may contain content you asked not to see.';
     }
   }
 

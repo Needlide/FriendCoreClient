@@ -1,0 +1,47 @@
+<div class="admin-wrap">
+  <nav class="subnav" aria-label="Admin sections">
+    <a
+      routerLink="/admin/dashboard"
+      routerLinkActive="active"
+      #dashboardRla="routerLinkActive"
+      [attr.aria-current]="dashboardRla.isActive ? 'page' : null"
+      >Dashboard</a
+    >
+    <a
+      routerLink="/admin/reports"
+      routerLinkActive="active"
+      #reportsRla="routerLinkActive"
+      [attr.aria-current]="reportsRla.isActive ? 'page' : null"
+      >Reports</a
+    >
+    <a
+      routerLink="/admin/appeals"
+      routerLinkActive="active"
+      #appealsRla="routerLinkActive"
+      [attr.aria-current]="appealsRla.isActive ? 'page' : null"
+      >Appeals</a
+    >
+    <a
+      routerLink="/admin/users"
+      routerLinkActive="active"
+      #usersRla="routerLinkActive"
+      [attr.aria-current]="usersRla.isActive ? 'page' : null"
+      >Users</a
+    >
+    <a
+      routerLink="/admin/tags"
+      routerLinkActive="active"
+      #tagsRla="routerLinkActive"
+      [attr.aria-current]="tagsRla.isActive ? 'page' : null"
+      >Tags</a
+    >
+    <a
+      routerLink="/admin/audit-log"
+      routerLinkActive="active"
+      #auditRla="routerLinkActive"
+      [attr.aria-current]="auditRla.isActive ? 'page' : null"
+      >Audit log</a
+    >
+  </nav>
+  <router-outlet />
+</div>

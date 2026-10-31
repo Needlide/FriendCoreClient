@@ -21,6 +21,7 @@ export class PreferencesService {
 
   readonly loaded = computed(() => this.prefs() !== null);
   readonly hideFlashingMedia = computed(() => this.prefs()?.hideFlashingMedia ?? true);
+  readonly hideArachnidMedia = computed(() => this.prefs()?.hideArachnidMedia ?? true);
   readonly reduceMotion = computed(() => this.prefs()?.reduceMotion ?? false);
   readonly disableAutoplay = computed(() => this.prefs()?.disableAutoplay ?? true);
   readonly reduceVisualNoise = computed(() => this.prefs()?.reduceVisualNoise ?? false);
@@ -53,6 +54,7 @@ export class PreferencesService {
     return (
       this.prefs() ?? {
         hideFlashingMedia: true,
+        hideArachnidMedia: true,
         reduceMotion: false,
         disableAutoplay: true,
         reduceVisualNoise: false,

@@ -1,0 +1,78 @@
+.lede {
+  color: var(--fc-text-muted);
+  margin-bottom: var(--fc-space-4);
+}
+
+.queue {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.queue th {
+  text-align: left;
+  font-size: var(--fc-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fc-text-muted);
+  padding: var(--fc-space-2) var(--fc-space-3);
+  border-bottom: 1px solid var(--fc-border);
+}
+
+.queue td {
+  padding: var(--fc-space-2) var(--fc-space-3);
+  border-bottom: 1px solid var(--fc-border);
+  font-size: var(--fc-text-sm);
+  vertical-align: top;
+}
+
+.queue tr:hover {
+  background: var(--fc-surface-2);
+}
+
+.name {
+  font-weight: 600;
+}
+
+.slug {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: var(--fc-text-xs);
+  color: var(--fc-text-muted);
+}
+
+.creator {
+  color: var(--fc-text-muted);
+}
+
+.actions {
+  display: flex;
+  gap: var(--fc-space-1);
+}
+
+.fc-tag-action {
+  padding: var(--fc-space-1) var(--fc-space-2);
+  font-size: var(--fc-text-xs);
+  font-weight: 600;
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-surface);
+  color: var(--fc-text);
+  cursor: pointer;
+}
+
+.fc-tag-action:hover {
+  border-color: var(--fc-accent);
+}
+
+.fc-tag-action-ban {
+  color: var(--fc-danger);
+  border-color: var(--fc-danger);
+}
+
+.fc-tag-action-ban:hover {
+  background: var(--fc-danger);
+  color: #fff;
+}
+
+.small {
+  font-size: var(--fc-text-xs);
+}

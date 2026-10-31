@@ -1,0 +1,52 @@
+.lede {
+  color: var(--fc-text-muted);
+  margin-bottom: var(--fc-space-4);
+}
+
+.log {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.log th {
+  text-align: left;
+  font-size: var(--fc-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fc-text-muted);
+  padding: var(--fc-space-2) var(--fc-space-3);
+  border-bottom: 1px solid var(--fc-border);
+}
+
+.log td {
+  padding: var(--fc-space-2) var(--fc-space-3);
+  border-bottom: 1px solid var(--fc-border);
+  font-size: var(--fc-text-sm);
+  vertical-align: top;
+}
+
+.log tr:hover {
+  background: var(--fc-surface-2);
+}
+
+.action {
+  font-weight: 600;
+  font-size: var(--fc-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reason {
+  color: var(--fc-text-muted);
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ip,
+.report {
+  font-size: var(--fc-text-xs);
+  color: var(--fc-text-muted);
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}

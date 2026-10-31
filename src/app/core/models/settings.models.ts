@@ -5,6 +5,11 @@
 /** GET /users/me/preferences (and PATCH …/preferences, which returns the same shape). */
 export interface UserPreferences {
   hideFlashingMedia: boolean;
+  /**
+   * true → ask before showing media flagged with the arachnophobia hazard. Opt-out, like
+   * hideFlashingMedia: turning it off is consent, so the viewer auto-reveals.
+   */
+  hideArachnidMedia: boolean;
   reduceMotion: boolean;
   disableAutoplay: boolean;
   reduceVisualNoise: boolean;

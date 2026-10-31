@@ -1,0 +1,58 @@
+<h1>Admin dashboard</h1>
+<p class="lede">Moderation overview. All numbers are live from the server.</p>
+
+@if (loading()) {
+  <p role="status">Loading…</p>
+} @else if (error()) {
+  <fc-auth-error [error]="error()" context="generic" />
+  <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
+} @else {
+  <div class="metrics">
+    <div class="card">
+      <h3>Reports</h3>
+      <p class="big">{{ metrics()?.reports.total }}</p>
+      <p class="muted">
+        Pending {{ metrics()?.reports.pending }} ·
+        Resolved {{ metrics()?.reports.resolved }} ·
+        Dismissed {{ metrics()?.reports.dismissed }}
+      </p>
+      @if (metrics()?.reports.avgResolutionHours !== null) {
+        <p class="muted small">Avg resolution: {{ metrics()?.reports.avgResolutionHours }}h</p>
+      }
+      <a routerLink="/admin/reports" class="fc-link">Open report queue →</a>
+    </div>
+
+    <div class="card">
+      <h3>Appeals</h3>
+      <p class="big">{{ metrics()?.appeals.total }}</p>
+      <p class="muted">
+        Pending {{ metrics()?.appeals.pending }} ·
+        Reviewed {{ metrics()?.appeals.reviewed }} ·
+        Overturned {{ metrics()?.appeals.overturned }}
+      </p>
+      <p class="muted small">Overturn rate: {{ ((metrics()?.appeals?.overturnRate ?? 0) * 100) | number:'1.0-1' }}%</p>
+      <a routerLink="/admin/appeals" class="fc-link">Open appeal queue →</a>
+    </div>
+
+    <div class="card">
+      <h3>Moderation actions</h3>
+      <p class="big">{{ metrics()?.totalModerationActions }}</p>
+      <p class="muted">Total enforcement actions recorded in the audit log.</p>
+      <a routerLink="/admin/audit-log" class="fc-link">Open audit log →</a>
+    </div>
+
+    <div class="card">
+      <h3>Tags</h3>
+      <p class="muted">Tags awaiting review sit in the tag queue — approve, archive, or ban.</p>
+      <a routerLink="/admin/tags" class="fc-link">Open tag queue →</a>
+    </div>
+  </div>
+
+  <div class="quick">
+    <h2>Quick actions</h2>
+    <a routerLink="/admin/reports" class="fc-primary">Reports queue</a>
+    <a routerLink="/admin/appeals" class="fc-primary">Appeals queue</a>
+    <a routerLink="/admin/users" class="fc-primary">Look up a user</a>
+    <a routerLink="/admin/tags" class="fc-primary">Tag queue</a>
+  </div>
+}

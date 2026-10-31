@@ -4,17 +4,18 @@ import { Tooltip } from './tooltip';
 /**
  * The creator's own media-safety declaration (API §7.4, detection layer 1).
  *
- * ONE switch, shared by every surface that uploads media — the post composer and the DM
- * composer. It was a per-surface block of markup before, which is exactly how the two
- * flashing/motion checkboxes drifted into being duplicated identical controls; a shared
- * component makes that class of divergence impossible rather than merely fixed once.
+ * ONE switch for the DM composer. The post composer uses the fuller `fc-content-settings`
+ * drawer instead, because it also declares arachnophobia/explicit content; both write the
+ * same `flashing` + `intenseMotion` keys into the one `SafetyFlags` dictionary. It was a
+ * per-surface block of markup before, which is exactly how the two flashing/motion checkboxes
+ * drifted into being duplicated identical controls.
  *
- * Why one box and not two: `MediaViewer.flagged` gates on `hasFlashingWarning ||
- * hasIntenseMotionWarning` behind a single preference, with one placeholder and one message.
- * The two fields are indistinguishable to the reader, so two checkboxes asked a question with
+ * Why one box and not two: the viewer gates on the `flashing` and `intenseMotion` safety flags
+ * behind a single preference, with one placeholder and one message.
+ * The two flags are indistinguishable to the reader, so two checkboxes asked a question with
  * no answer — and a user could untick the wrong one while a shaky video passed. Ticking this
- * sets both fields, which is deliberate over-flagging: the creator can say "one of these might
- * apply", not which. The fields stay distinct in the schema because they are the natural
+ * sets both flags, which is deliberate over-flagging: the creator can say "one of these might
+ * apply", not which. The flags stay distinct in the dictionary because they are the natural
  * inputs to automated flashing detection, and a photosensitivity seizure risk is a harder
  * hazard than a motion nuisance.
  *

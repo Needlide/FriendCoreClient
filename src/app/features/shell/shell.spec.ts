@@ -68,6 +68,7 @@ describe('Shell', () => {
     });
     expectApi(http, '/users/me/preferences').flush({
       hideFlashingMedia: true,
+      hideArachnidMedia: true,
       reduceMotion: false,
       disableAutoplay: true,
       reduceVisualNoise: false,
@@ -84,6 +85,7 @@ describe('Shell', () => {
     // Shell also loads accessibility prefs (safe defaults apply until they land).
     expectApi(http, '/users/me/preferences').flush({
       hideFlashingMedia: true,
+      hideArachnidMedia: true,
       reduceMotion: false,
       disableAutoplay: true,
       reduceVisualNoise: false,

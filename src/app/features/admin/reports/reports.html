@@ -1,0 +1,160 @@
+<h1>Report queue</h1>
+<p class="lede">
+  Reports filed by users, sorted by priority then age. Click a report to view its subject
+  and resolve it. Resolved reports leave the queue.
+</p>
+
+@if (loading()) {
+  <p role="status">Loading…</p>
+} @else if (error()) {
+  <fc-auth-error [error]="error()" context="generic" />
+  <button type="button" class="fc-secondary" (click)="retry()">Try again</button>
+} @else if (reports().length === 0) {
+  <p class="muted">No pending reports. Queue is clear.</p>
+} @else {
+  <table class="queue">
+    <thead>
+      <tr>
+        <th>Priority</th>
+        <th>Category</th>
+        <th>Target</th>
+        <th>Reported by</th>
+        <th>Note</th>
+        <th>Filed</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (r of reports(); track r.id) {
+        <tr>
+          <td class="priority">{{ r.priority }}</td>
+          <td>{{ categoryLabel(r.category) }}</td>
+          <td class="target">
+            <strong>{{ r.targetType }}</strong> <span class="id">{{ r.targetId }}</span>
+          </td>
+          <td class="reporter">{{ r.reporter.username }}</td>
+          <td class="note">{{ r.note ?? '—' }}</td>
+          <td><time [attr.datetime]="r.createdAt">{{ r.createdAt | relativeTime }}</time></td>
+          <td class="actions">
+            <button type="button" class="fc-secondary" (click)="open(r)">View</button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+}
+
+/* ── Detail / resolve panel (overlay below the list) ── */
+
+@if (selected(); as report) {
+  <div class="detail-panel">
+    <button type="button" class="fc-secondary" (click)="close()">Back to queue</button>
+
+    <h2>Report {{ report.id }}</h2>
+
+    <div class="meta-grid">
+      <div class="meta">
+        <label class="meta-label">Status</label>
+        <p class="meta-value">{{ report.status }}</p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Priority</label>
+        <p class="meta-value">{{ report.priority }}</p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Category</label>
+        <p class="meta-value">{{ categoryLabel(report.category) }}</p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Target type</label>
+        <p class="meta-value">{{ report.targetType }}</p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Target id</label>
+        <p class="meta-value">{{ report.targetId }}</p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Reported by</label>
+        <p class="meta-value">{{ report.reporter.username }}</p>
+      </div>
+      <div class="meta">
+        <label class="meta-label">Filed</label>
+        <p class="meta-value"><time [attr.datetime]="report.createdAt">{{ report.createdAt | relativeTime }}</time></p>
+      </div>
+      @if (report.note) {
+        <div class="meta full">
+          <label class="meta-label">Reporter's note</label>
+          <p class="meta-value">{{ report.note }}</p>
+        </div>
+      }
+    </div>
+
+    @if (report.subject; as subj) {
+      <section class="subject">
+        <h3>Reported content (captured at report time)</h3>
+        <div class="subject-kind">{{ subj.kind }}</div>
+        <blockquote class="subject-content">{{ subj.content }}</blockquote>
+        <p class="subject-byline">
+          By {{ subj.authorUsername ?? 'unknown' }}
+          <time [attr.datetime]="subj.capturedAt">· captured {{ subj.capturedAt | relativeTime }}</time>
+        </p>
+      </section>
+    } @else {
+      <section class="subject subject-none">
+        <h3>Reported content</h3>
+        <p class="muted">No subject snapshot — the content was already gone when the report was filed.</p>
+      </section>
+    }
+
+    <section class="resolve">
+      <h3>Resolve report</h3>
+      <p class="muted small">
+        A reason is mandatory and is written to the audit log. The subject's author may appeal.
+      </p>
+
+      <form class="resolve-form" (submit)="resolve(); $event.preventDefault()">
+        <label>Action</label>
+        <select [ngModel]="resolveAction()" (ngModelChange)="resolveAction.set($event)" [ngModelOptions]="{ standalone: true }">
+          @for (a of RESOLVE_ACTIONS; track a.value) {
+            <option [value]="a.value">{{ a.label }}</option>
+          }
+        </select>
+
+        @if (needsSuspensionDays(resolveAction())) {
+          <label>Suspension days (1–365)</label>
+          <input
+            type="number"
+            min="1"
+            max="365"
+            [ngModel]="resolveSuspensionDays()"
+            (ngModelChange)="resolveSuspensionDays.set($event)"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        }
+
+        <label>Reason</label>
+        <textarea
+          [(ngModel)]="resolveReason"
+          [ngModelOptions]="{ standalone: true }"
+          rows="3"
+          placeholder="Why this action?"
+        ></textarea>
+
+        @if (resolveError()) {
+          <fc-auth-error [error]="resolveError()" context="generic" />
+        }
+
+        <div class="resolve-actions">
+          <button type="button" class="fc-secondary" (click)="close()">Cancel</button>
+          <button
+            type="submit"
+            class="fc-primary"
+            [disabled]="resolving() === report.id || resolveReason().trim().length === 0 || isActionDisabled(resolveAction())"
+          >
+            {{ resolving() === report.id ? 'Resolving…' : 'Resolve report' }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </div>
+}

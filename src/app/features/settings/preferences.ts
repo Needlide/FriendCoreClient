@@ -26,6 +26,7 @@ export class Preferences {
   protected readonly error = signal<ApiError | null>(null);
 
   protected hideFlashing = signal(true);
+  protected hideArachnids = signal(true);
   protected reduceMotion = signal(false);
   protected disableAutoplay = signal(true);
   protected reduceNoise = signal(false);
@@ -36,6 +37,7 @@ export class Preferences {
     this.prefs.load().subscribe({
       next: (p) => {
         this.hideFlashing.set(p.hideFlashingMedia);
+        this.hideArachnids.set(p.hideArachnidMedia);
         this.reduceMotion.set(p.reduceMotion);
         this.disableAutoplay.set(p.disableAutoplay);
         this.reduceNoise.set(p.reduceVisualNoise);
@@ -58,6 +60,7 @@ export class Preferences {
     this.prefs
       .update({
         hideFlashingMedia: this.hideFlashing(),
+        hideArachnidMedia: this.hideArachnids(),
         reduceMotion: this.reduceMotion(),
         disableAutoplay: this.disableAutoplay(),
         reduceVisualNoise: this.reduceNoise(),
