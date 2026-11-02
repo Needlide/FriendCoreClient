@@ -87,10 +87,52 @@ describe('Discovery', () => {
     expect(el.querySelectorAll('fc-user-card').length).toBe(0);
   });
 
+  it('removes the row after muting (muted users are excluded server-side)', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/feed/discovery/people').flush(peopleResponse);
+    fixture.detectChanges();
+    expect(el.querySelectorAll('fc-user-card').length).toBe(1);
+
+    el.querySelector('fc-block-mute-menu summary')!.dispatchEvent(new Event('click'));
+    const muteItem = Array.from(el.querySelectorAll('fc-block-mute-menu .items button')).find(
+      (b) => b.textContent?.includes('Mute'),
+    ) as HTMLButtonElement;
+    muteItem.click();
+    expectApi(http, '/users/bob/mute').flush(null);
+    fixture.detectChanges();
+
+    expect(el.querySelectorAll('fc-user-card').length).toBe(0);
+  });
+
   it('shows an empty state when nothing matches', () => {
     const { fixture, el } = create();
     expectApi(http, '/feed/discovery/people').flush({ people: [] });
     fixture.detectChanges();
     expect(el.textContent).toContain('Nothing new to discover');
+  });
+
+  it('empty people state links back to onboarding', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/feed/discovery/people').flush({ people: [] });
+    fixture.detectChanges();
+    expect(el.querySelector('a[href="/onboarding"]')?.textContent).toContain(
+      'Review your interests',
+    );
+  });
+
+  it('empty posts state links back to onboarding', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/feed/discovery/people').flush(peopleResponse);
+    fixture.detectChanges();
+
+    switchToPosts(el);
+    fixture.detectChanges();
+    expectApi(http, '/feed/discovery/posts').flush({ posts: [] });
+    fixture.detectChanges();
+
+    expect(el.textContent).toContain('No posts match your interests');
+    expect(el.querySelector('a[href="/onboarding"]')?.textContent).toContain(
+      'Review your interests',
+    );
   });
 });

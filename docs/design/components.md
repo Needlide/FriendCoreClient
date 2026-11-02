@@ -301,7 +301,7 @@ Bottom sheet variant of Modal for mobile actions/menus. Same a11y as Modal; swip
 | **States** | idle, uploading (%), processing (poll), ready, failed |
 | **API** | `POST /api/v1/media` → poll `GET /api/v1/media/{id}/status` |
 
-Includes checkboxes: "Contains flashing lights", "Contains intense motion" (`HasFlashingWarning`, `HasIntenseMotionWarning`).
+Content settings live in a native `<dialog>` (`fc-content-settings`) rather than inline checkboxes, so the composer stays clean as hazards accumulate. The dialog writes one `SafetyFlags` JSON object (`flashing`, `intenseMotion`, `arachnophobia`, `explicit`); adding a hazard is one row in the dialog and one key in the object, with no API or schema change.
 
 ---
 
@@ -310,7 +310,7 @@ Includes checkboxes: "Contains flashing lights", "Contains intense motion" (`Has
 | **Angular** | `fc-media-viewer` |
 | **States** | **safe-placeholder** (warning + "Show media" — image NOT loaded), revealed, loading, error |
 
-Critical: when `HideFlashingMedia && HasFlashingWarning`, placeholder must not load `<img src>` until user clicks.
+Critical: the server withholds the variant URLs when a gating safety flag is set — `flashing`, `intenseMotion` on an animated GIF, `arachnophobia`, or `explicit` — so the placeholder has no `<img src>` to load in the first place; it only appears after `POST /media/{id}/reveal` returns URLs. The server's `gateReason` selects the copy and the reader preference: `HideFlashingMedia` / `HideArachnidMedia` (both opt-out, default true) and `ContentPreference === 'Explicit'` for explicit media.
 
 ---
 

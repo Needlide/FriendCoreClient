@@ -59,6 +59,7 @@ export class Profile {
   protected readonly followers = signal<UserSummary[] | null>(null);
   protected readonly following = signal<UserSummary[] | null>(null);
   protected readonly listsLoading = signal(false);
+  protected readonly messageError = signal(false);
 
   /** Manual reload trigger, merged into the param stream (see the constructor). */
   private readonly reload$ = new Subject<void>();
@@ -130,9 +131,10 @@ export class Profile {
   protected message(): void {
     const username = this.profile()?.username;
     if (!username) return;
+    this.messageError.set(false);
     this.messaging.start(username).subscribe({
       next: (conversation) => void this.router.navigate(['/messages', conversation.id]),
-      error: () => undefined,
+      error: () => this.messageError.set(true),
     });
   }
 
@@ -161,6 +163,7 @@ export class Profile {
     this.loading.set(true);
     this.error.set(null);
     this.notFound.set(false);
+    this.messageError.set(false);
     this.profile.set(null);
     this.tab.set('posts');
     this.posts.set([]);

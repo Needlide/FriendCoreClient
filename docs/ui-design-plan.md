@@ -105,8 +105,8 @@ requirements for this project, not nice-to-haves:
 
 **Distraction management (core to ADHD)**
 - **No autoplay** by default (respect `DisableAutoplay`); any motion is pausable.
-- Flashing/seizure safety: when `HideFlashingMedia` is on and a media item
-  `HasFlashingWarning`, render a **placeholder and do NOT load the source** until the user
+- Flashing/seizure safety: when `HideFlashingMedia` is on and a media item's
+  `safetyFlags` include `flashing`, render a **placeholder and do NOT load the source** until the user
   clicks "Show media" (matches the API's three-layer safety model; prevents the browser
   from rendering flashing content before consent).
 - No notification "dopamine" patterns; the bell is a quiet count, not a pulsing alarm.

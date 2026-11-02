@@ -23,6 +23,7 @@
         @if (!tagsRef.hasAny()) {
           <p class="hint">Pick at least one interest — it's how we find your people.</p>
         }
+        <p class="hint"><a routerLink="/discover">Skip for now</a></p>
       </div>
     } @else {
       <h1 id="onboarding-title">People you may like</h1>
@@ -32,6 +33,7 @@
 
       <div class="actions">
         <button type="button" class="fc-submit" (click)="finish()">Enter FriendCore</button>
+        <p class="hint"><button type="button" class="linklike" (click)="backToTags()">Back to interests</button></p>
       </div>
     }
   </section>

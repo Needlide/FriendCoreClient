@@ -216,37 +216,57 @@ describe('Composer', () => {
     req.flush(createdPost);
   });
 
-  it('explains the safety flags with a tooltip that names the real consequence', () => {
-    const { fixture, el } = create();
-    // One checkbox, so one tooltip — a flag nobody can explain is a flag nobody
-    // understands. (It was two checkboxes until the flags were collapsed: they gate
-    // identically behind one preference, so two switches was a trap.)
-    const triggers = el.querySelectorAll('fc-tooltip .trigger');
-    expect(triggers.length).toBe(1);
+  it('shows a content settings button instead of an inline checkbox', () => {
+    const { el } = create();
+    const btn = el.querySelector('.fc-content-settings-btn');
+    expect(btn).not.toBeNull();
+    expect(btn?.textContent).toContain('Content settings');
 
-    triggers[0].dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-    fixture.detectChanges();
-    const bubble = el.querySelector('.bubble')!;
-
-    // The copy must match what MediaViewer actually does: gate on the reader's own
-    // "Hide flashing media" preference, and do not claim it hides the image from everyone.
-    expect(bubble.textContent).toContain('Hide flashing media');
-    expect(bubble.textContent).toContain('not loaded');
-    expect(bubble.textContent).toContain('Everyone else sees it normally');
-    expect(bubble.getAttribute('role')).toBe('tooltip');
+    // No inline checkbox anymore — the toggles live in the dialog.
+    expect(el.querySelector('.checks input[type=checkbox]')).toBeNull();
   });
 
-  it('sends both hazard fields from the single declaration', () => {
+  it('opens the content settings dialog and shows all three toggles', () => {
+    // jsdom implements <dialog> markup but not showModal() — stub it.
+    window.HTMLDialogElement.prototype.showModal ??= function (
+      this: HTMLDialogElement,
+    ) {
+      this.setAttribute('open', '');
+    };
+    window.HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+    };
+
+    const { fixture, el } = create();
+    const btn = el.querySelector('.fc-content-settings-btn') as HTMLButtonElement;
+    btn.click();
+    fixture.detectChanges();
+
+    const dialog = el.querySelector('fc-content-settings dialog') as HTMLDialogElement;
+    expect(dialog.hasAttribute('open')).toBe(true);
+
+    // All three toggles are present in the drawer.
+    const boxes = Array.from(dialog.querySelectorAll('input[type=checkbox]'));
+    expect(boxes.length).toBe(3);
+    expect(dialog.textContent).toContain('Flashing lights or intense motion');
+    expect(dialog.textContent).toContain('Spiders or arachnids');
+    expect(dialog.textContent).toContain('Explicit or sexually suggestive content');
+
+    dialog.close();
+    fixture.detectChanges();
+    expect(dialog.hasAttribute('open')).toBe(false);
+  });
+
+  it('sends all hazard fields from the content settings dialog', () => {
     const { fixture, el } = create();
     writeText(el, 'with flags');
     fixture.detectChanges();
 
-    // Deliberately ONE switch: the reader sees no difference between the two flags, so
-    // asking the user to distinguish them would be asking a question with no answer.
-    const boxes = el.querySelectorAll<HTMLInputElement>('.checks input[type=checkbox]');
-    expect(boxes.length).toBe(1);
-    boxes[0].checked = true;
-    boxes[0].dispatchEvent(new Event('change'));
+    // Set all three flags directly (as the dialog would).
+    const comp = fixture.componentInstance;
+    comp.warnSafety.set(true);
+    comp.warnArachnophobia.set(true);
+    comp.warnExplicit.set(true);
     fixture.detectChanges();
 
     const file = new File(['x'], 'a.png', { type: 'image/png' });
@@ -255,10 +275,17 @@ describe('Composer', () => {
     input.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
-    // Multipart, so the flags are FormData fields with the API's PascalCase names.
+    // Multipart, but the flags travel as ONE JSON dictionary field — adding a new hazard
+    // never changes the form or the API contract.
     const upload = expectApi(http, '/media');
     const form = upload.request.body as FormData;
-    expect(form.get('HasFlashingWarning')).toBe('true');
-    expect(form.get('HasIntenseMotionWarning')).toBe('true');
+    expect(form.get('SafetyFlags')).toBe(
+      JSON.stringify({
+        flashing: true,
+        intenseMotion: true,
+        arachnophobia: true,
+        explicit: true,
+      }),
+    );
   });
 });

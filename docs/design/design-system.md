@@ -150,7 +150,7 @@ loaded by the shell; safe defaults apply until the first load) from
 
 | API field | Default | Design requirement |
 |---|---|---|
-| `HideFlashingMedia` | `true` | Placeholder before media loads when `HasFlashingWarning` |
+| `HideFlashingMedia` | `true` | Placeholder before media loads when `safetyFlags.flashing` or `safetyFlags.intenseMotion` is set |
 | `DisableAutoplay` | `true` | No autoplaying video/GIF; user must click play |
 
 ---

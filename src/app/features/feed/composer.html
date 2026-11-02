@@ -129,10 +129,22 @@
           (change)="onFile($event)"
         />
         <div class="checks">
-          <fc-safety-declaration [(declared)]="warnSafety" />
+          <button
+            type="button"
+            class="fc-content-settings-btn"
+            (click)="openContentSettings()"
+          >
+            Content settings
+          </button>
         </div>
       }
     }
+
+    <fc-content-settings
+      [(flashing)]="warnSafety"
+      [(arachnophobia)]="warnArachnophobia"
+      [(explicit)]="warnExplicit"
+    ></fc-content-settings>
   </div>
 
   <button type="button" class="fc-submit" [disabled]="!canPublish()" (click)="publish()">

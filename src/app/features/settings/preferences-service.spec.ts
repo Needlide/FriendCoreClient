@@ -6,6 +6,7 @@ import { configureAuthTestBed, expectApi } from '../auth/test-utils';
 
 const serverPrefs: UserPreferences = {
   hideFlashingMedia: false,
+  hideArachnidMedia: false,
   reduceMotion: true,
   disableAutoplay: false,
   reduceVisualNoise: true,
@@ -29,6 +30,7 @@ describe('PreferencesService', () => {
 
   it('fails safe before loading (protections on)', () => {
     expect(prefs.hideFlashingMedia()).toBe(true);
+    expect(prefs.hideArachnidMedia()).toBe(true);
     expect(prefs.disableAutoplay()).toBe(true);
   });
 
@@ -37,6 +39,7 @@ describe('PreferencesService', () => {
     expectApi(http, '/users/me/preferences').flush(serverPrefs);
 
     expect(prefs.hideFlashingMedia()).toBe(false);
+    expect(prefs.hideArachnidMedia()).toBe(false);
     expect(prefs.contentPreference()).toBe('Sensitive');
     expect(document.documentElement.dataset['reduceMotion']).toBe('true');
     expect(document.documentElement.dataset['reduceVisualNoise']).toBe('true');

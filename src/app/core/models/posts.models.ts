@@ -1,3 +1,5 @@
+import { SafetyFlags } from '../../core/models/safety-flags';
+
 /**
  * Post + feed + media contracts. Mirror the API exactly (camelCase) — do not rename.
  */
@@ -13,19 +15,20 @@ export interface MediaVariant {
 
 export interface PostMedia {
   id: string;
-  hasFlashingWarning: boolean;
-  hasIntenseMotionWarning: boolean;
+  /** Creator/moderator-declared safety flags: { "flashing": true, "arachnophobia": false, ... }. */
+  safetyFlags: SafetyFlags;
   /** Empty when the server withheld the URLs — see the gate note below. */
   variants: MediaVariant[];
   /**
    * Why the server withheld them: "Flashing" | "IntenseMotion" |
-   * "FlashingAndIntenseMotion", or null when nothing was withheld.
+   * "FlashingAndIntenseMotion" | "Arachnophobia" | "Explicit", or null when nothing was
+   * withheld.
    *
-   * The server names the hazard rather than leaving this client to work it out from the two
-   * booleans. That re-derivation is precisely what moving the gate server-side removed, so
-   * reintroducing it here for the *reason* would undo the point. It also resolves which
-   * preference applies: intense motion is gated on ReduceMotion, flashing on
-   * HideFlashingMedia, and only animated media (GIF) can be motion-gated at all.
+   * The server names the hazard rather than leaving this client to work it out from the flags.
+   * That re-derivation is precisely what moving the gate server-side removed, so reintroducing
+   * it here for the *reason* would undo the point. It also resolves which preference applies:
+   * flashing on HideFlashingMedia, arachnophobia on HideArachnidMedia, explicit content on
+   * ContentPreference, and only animated media (GIF) can be motion-gated at all.
    */
   gateReason: string | null;
 }

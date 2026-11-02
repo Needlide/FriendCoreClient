@@ -144,6 +144,49 @@ describe('Profile', () => {
     expect(navigate).toHaveBeenCalledWith(['/messages', 'c9']);
   });
 
+  it('shows a retryable error when opening the conversation fails', async () => {
+    const { fixture, el } = await setup('bob');
+    expectApi(http, '/users/bob').flush(profile);
+    expectApi(http, '/users/bob/posts').flush({ posts: [], nextCursor: null });
+    fixture.detectChanges();
+
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const messageButton = Array.from(el.querySelectorAll('.side button')).find(
+      (b) => b.textContent?.trim() === 'Message',
+    ) as HTMLButtonElement;
+    messageButton.click();
+    expectApi(http, '/conversations').flush(null, { status: 500, statusText: 'Server Error' });
+    fixture.detectChanges();
+
+    expect(el.querySelector('[role="alert"]')?.textContent).toContain(
+      "Couldn't open the conversation.",
+    );
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('seeds follower-list follow buttons from isFollowedByViewer', async () => {
+    const { fixture, el } = await setup('bob');
+    expectApi(http, '/users/bob').flush(profile);
+    expectApi(http, '/users/bob/posts').flush({ posts: [], nextCursor: null });
+    fixture.detectChanges();
+
+    const tabs = Array.from(el.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    tabs.find((t) => t.textContent?.trim() === 'Followers')!.click();
+    expectApi(http, '/users/bob/followers').flush({
+      users: [
+        {
+          userId: 'u2',
+          username: 'carol',
+          displayName: 'Carol',
+          isVerified: false,
+          isFollowedByViewer: true,
+        },
+      ],
+    });
+    fixture.detectChanges();
+    expect(el.querySelector('fc-user-card fc-follow-button')?.textContent).toContain('Following');
+  });
+
   it('navigates home after you block them (their page is a 404 for you now)', async () => {
     const { fixture, el } = await setup('bob');
     expectApi(http, '/users/bob').flush(profile);

@@ -2,9 +2,8 @@
  * Profile contracts. Mirror the API exactly (camelCase) — do not rename.
  *
  * Deliberate gaps worth knowing (server follow-ups, not client bugs):
- *  - No follower/following/post counts, no follow-state, no tags in the response.
- *    Counts are omitted from tab labels; follow buttons start neutral (follow is
- *    idempotent server-side, so a redundant click self-heals); tags need a future
+ *  - No follower/following/post counts, no tags in the response.
+ *    Counts are omitted from tab labels; tags need a future
  *    GET /users/{username}/tags (only PUT exists today).
  */
 
@@ -36,6 +35,8 @@ export interface UserSummary {
   username: string;
   displayName: string;
   isVerified: boolean;
+  /** Whether the requesting user follows this entry — drives the row's follow button. */
+  isFollowedByViewer?: boolean;
 }
 
 /** GET /users/{username}/followers and .../following */

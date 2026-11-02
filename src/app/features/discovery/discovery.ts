@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { DiscoveryService } from './discovery.service';
 import { ApiError } from '../../core/models/api-error';
 import { Post } from '../../core/models/posts.models';
@@ -17,7 +18,7 @@ type Tab = 'people' | 'posts';
  */
 @Component({
   selector: 'fc-discovery',
-  imports: [UserCard, PostCard, AuthError],
+  imports: [UserCard, PostCard, AuthError, RouterLink],
   templateUrl: './discovery.html',
   styleUrl: './discovery.scss',
 })
@@ -53,6 +54,12 @@ export class Discovery {
 
   protected dropBlocked(username: string): void {
     this.people.update((people) => people.filter((p) => p.username !== username));
+  }
+
+  /** Muted users are excluded server-side on the next fetch — drop the row now. */
+  protected dropMuted(event: { username: string; muted: boolean }): void {
+    if (!event.muted) return;
+    this.people.update((people) => people.filter((p) => p.username !== event.username));
   }
 
   private load(): void {

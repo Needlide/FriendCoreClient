@@ -34,6 +34,9 @@
         } @else {
           <fc-follow-button [username]="p.username" [isFollowing]="p.isFollowedByViewer" />
           <button type="button" class="fc-secondary" (click)="message()">Message</button>
+          @if (messageError()) {
+            <p role="alert">Couldn't open the conversation. Try again.</p>
+          }
           <fc-block-mute-menu [username]="p.username" (blocked)="dropBlocked($event)" />
         }
       </div>
@@ -103,6 +106,7 @@
               <fc-user-card
                 [username]="u.username"
                 [displayName]="u.displayName"
+                [isFollowing]="u.isFollowedByViewer ?? false"
                 (blocked)="dropListed($event)"
               />
             </li>
@@ -121,6 +125,7 @@
               <fc-user-card
                 [username]="u.username"
                 [displayName]="u.displayName"
+                [isFollowing]="u.isFollowedByViewer ?? false"
                 (blocked)="dropListed($event)"
               />
             </li>

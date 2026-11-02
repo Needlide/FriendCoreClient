@@ -158,6 +158,23 @@ select {
   gap: var(--fc-space-1);
 }
 
+.fc-content-settings-btn {
+  font: inherit;
+  font-size: var(--fc-text-sm);
+  font-weight: 600;
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-surface);
+  color: var(--fc-text);
+  padding: var(--fc-space-1) var(--fc-space-3);
+  cursor: pointer;
+  min-height: 2rem;
+}
+
+.fc-content-settings-btn:hover {
+  border-color: var(--fc-accent);
+}
+
 .failed {
   color: var(--fc-danger);
 }

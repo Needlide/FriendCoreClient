@@ -71,12 +71,12 @@ enter `/`. Skippable follows; tags required (cold-start §9.3 needs them for dis
 button, not infinite scroll** (calm-UX principle). End state: "You're all caught up".
 Empty (no follows): CTA to `/discover` or `/onboarding`. PostCard shows tags
 (`PostResponse.Tags` exists), variant image by context (feed = medium/large),
-flashing-safety placeholder when `HideFlashingMedia && HasFlashingWarning`
-(never load the source until "Show media").
+flashing-safety placeholder when the server withholds the variants for
+`safetyFlags.flashing` / `intenseMotion` (never load the source until "Show media").
 
 ### Composer (modal/sheet from Home)
 
-1. `POST /media` (multipart: `File`, `HasFlashingWarning`, `HasIntenseMotionWarning`; ≤20 MB, jpeg/png/webp/gif) → 201 `{id, status: Processing}`
+1. `POST /media` (multipart: `File`, `SafetyFlags` — one JSON object of flag names to booleans; ≤20 MB, jpeg/png/webp/gif) → 201 `{id, status: Processing}`
 2. Poll `GET /media/{id}/status` (~1–2 s backoff) until `Ready` (`Failed` → error + retry). **No realtime push exists** — polling is the contract.
 3. `POST /posts` (text + media ids + sensitivity + tag slugs ≤12). Attach requires `Ready`.
 Also: `DELETE /media/{id}` (discard upload), unverified-gate handling.

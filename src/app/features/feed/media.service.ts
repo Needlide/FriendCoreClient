@@ -10,6 +10,7 @@ import {
   MediaVariant,
   UploadProgress,
 } from '../../core/models/posts.models';
+import { SafetyFlags } from '../../core/models/safety-flags';
 
 export type { UploadProgress };
 
@@ -28,12 +29,11 @@ export class MediaService {
   /** POST /media as multipart/form-data, emitting 0–100 upload percent. */
   upload(
     file: File,
-    flags: { hasFlashingWarning: boolean; hasIntenseMotionWarning: boolean },
+    flags: SafetyFlags,
   ): Observable<UploadProgress | MediaUploadResponse> {
     const form = new FormData();
     form.append('File', file, file.name);
-    form.append('HasFlashingWarning', String(flags.hasFlashingWarning));
-    form.append('HasIntenseMotionWarning', String(flags.hasIntenseMotionWarning));
+    form.append('SafetyFlags', JSON.stringify(flags));
 
     return this.http
       .post<MediaUploadResponse>(this.api.url(MediaEndpoints.media), form, {

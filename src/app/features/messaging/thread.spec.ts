@@ -987,8 +987,7 @@ describe('Thread', () => {
 
   const media = {
     id: 'med1',
-    hasFlashingWarning: false,
-    hasIntenseMotionWarning: false,
+    safetyFlags: {},
     variants: [
       { type: 'Small', url: 'http://storage.test/small.webp', widthPx: 300, heightPx: 200 },
     ],
@@ -1327,10 +1326,16 @@ describe('Thread', () => {
       attachImage(el);
       fixture.detectChanges();
       const upload = expectApi(http, '/media');
-      // Both fields: the sender can say "one of these might apply", not which.
+      // One JSON dictionary: the sender can say "one of these might apply", not which.
       const form = upload.request.body as FormData;
-      expect(form.get('HasFlashingWarning')).toBe('true');
-      expect(form.get('HasIntenseMotionWarning')).toBe('true');
+      expect(form.get('SafetyFlags')).toBe(
+        JSON.stringify({
+          flashing: true,
+          intenseMotion: true,
+          arachnophobia: false,
+          explicit: false,
+        }),
+      );
 
       // Drain the upload so afterEach's http.verify() finds nothing open.
       upload.flush({ id: 'dm-media-1', status: 'Processing' });
@@ -1358,7 +1363,7 @@ describe('Thread', () => {
     expectApi(http, '/media').flush('boom', { status: 500, statusText: 'Server Error' });
   });
 
-  it('sends both hazard fields as false when nothing is declared', () => {
+  it('sends every hazard flag as false when nothing is declared', () => {
     vi.useFakeTimers();
     try {
       const { fixture, el } = create();
@@ -1369,8 +1374,14 @@ describe('Thread', () => {
       fixture.detectChanges();
       const upload = expectApi(http, '/media');
       const form = upload.request.body as FormData;
-      expect(form.get('HasFlashingWarning')).toBe('false');
-      expect(form.get('HasIntenseMotionWarning')).toBe('false');
+      expect(form.get('SafetyFlags')).toBe(
+        JSON.stringify({
+          flashing: false,
+          intenseMotion: false,
+          arachnophobia: false,
+          explicit: false,
+        }),
+      );
 
       upload.flush({ id: 'dm-media-2', status: 'Processing' });
       vi.advanceTimersByTime(0);

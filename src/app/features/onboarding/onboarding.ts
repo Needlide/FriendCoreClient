@@ -1,5 +1,5 @@
 import { Component, inject, signal, viewChild } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { TagsService } from '../tags/tags.service';
 import { ApiError } from '../../core/models/api-error';
 import { ProfileTagInput, ProfileTagTier } from '../../core/models/tags.models';
@@ -22,7 +22,7 @@ import { TagsStep } from './tags-step';
  */
 @Component({
   selector: 'fc-onboarding',
-  imports: [TagsStep, SuggestedFollows, AuthError],
+  imports: [TagsStep, SuggestedFollows, AuthError, RouterLink],
   templateUrl: './onboarding.html',
   styleUrl: './onboarding.scss',
 })
@@ -60,6 +60,9 @@ export class Onboarding {
     this.tags.updateProfileTags(selection).subscribe({
       next: () => {
         this.saving.set(false);
+        // Remember the saved list so Back from step 2 remounts step 1 prefilled
+        // (TagsStep unmounts on step change; without this the typed tags vanish).
+        this.serverTags.set(selection.map((t) => ({ ...t })));
         this.step.set(2);
       },
       error: (err: unknown) => {
@@ -72,5 +75,10 @@ export class Onboarding {
 
   protected finish(): void {
     void this.router.navigate(['/']);
+  }
+
+  protected backToTags(): void {
+    this.error.set(null);
+    this.step.set(1);
   }
 }

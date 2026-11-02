@@ -60,3 +60,13 @@ h1 {
   font-size: var(--fc-text-sm);
   text-align: center;
 }
+
+.linklike {
+  font: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

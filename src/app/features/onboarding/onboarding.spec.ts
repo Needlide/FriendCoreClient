@@ -85,4 +85,28 @@ describe('Onboarding', () => {
     expect(el.textContent).toContain('Step 1 of 2');
     expect(el.querySelector('[role="alert"]')?.textContent).toContain('Too many tags.');
   });
+
+  it('offers a skip to discover without saving (no PUT)', () => {
+    const { el } = create();
+    const skip = el.querySelector('a[href="/discover"]') as HTMLAnchorElement | null;
+    expect(skip?.textContent).toContain('Skip for now');
+  });
+
+  it('returns from step 2 to step 1 via Back to interests', () => {
+    const { fixture, el } = create();
+    fixture.debugElement.query(By.directive(TagsStep)).componentInstance.add('synths', 'Primary');
+    fixture.detectChanges();
+
+    continueButton(el).click();
+    expectApi(http, '/users/me/tags').flush(null);
+    fixture.detectChanges();
+    expectApi(http, '/feed/discovery/people').flush({ people: [] });
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Step 2 of 2');
+
+    (el.querySelector('.linklike') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Step 1 of 2');
+    expect(el.textContent).toContain('synths');
+  });
 });

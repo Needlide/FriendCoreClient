@@ -116,3 +116,21 @@ export const ModerationEndpoints = {
    *  which gated the media but created no Report — so no moderator ever saw it. */
   reportMedia: (id: string) => `/media/${id}/report`,
 } as const;
+
+/** Admin moderation routes, relative to /api/v1. All require Moderator+ (some stricter).
+ *  These are server-gated — the client just calls them and handles 403. */
+export const AdminEndpoints = {
+  metrics: '/admin/metrics',
+  reports: '/admin/reports',
+  reportById: (id: string) => `/admin/reports/${id}`,
+  resolveReport: (id: string) => `/admin/reports/${id}/resolve`,
+  appeals: '/admin/appeals',
+  reviewAppeal: (id: string) => `/admin/appeals/${id}/review`,
+  userAccount: (username: string) => `/admin/users/${username}`,
+  actOnUser: (username: string) => `/admin/users/${username}/action`,
+  changeUserRole: (username: string) => `/admin/users/${username}/role`,
+  auditLog: '/admin/audit-log',
+  /** Tag moderation lives under /tags (TagModeration policy), not /admin. */
+  tagQueue: '/tags/moderation/queue',
+  moderateTag: (id: string) => `/tags/${id}/moderation`,
+} as const;

@@ -18,8 +18,12 @@ export class UserCard {
   username = input.required<string>();
   displayName = input.required<string>();
   bio = input<string | null>(null);
+  /** Seed for the row's follow button — false when unknown (same cold-load rule as profile). */
+  isFollowing = input(false);
   /** Fires after a confirmed block — parent drops the row. */
   readonly blocked = output<string>();
+  /** Fires after mute/unmute — parents that filter on mute (discovery) drop the row. */
+  readonly muted = output<{ username: string; muted: boolean }>();
 
   protected initials(): string {
     const name = this.displayName().trim();

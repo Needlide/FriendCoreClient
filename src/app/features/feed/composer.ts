@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, output, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
@@ -15,7 +15,8 @@ import {
   UploadProgress,
 } from '../../core/models/posts.models';
 import { TagInput } from '../tags/tag-input';
-import { SafetyDeclaration } from '../shared/safety-declaration';
+import { ContentSettings } from '../shared/content-settings';
+import { SAFETY_FLAG_DEFAULTS, SafetyFlags } from '../../core/models/safety-flags';
 import { AuthError } from '../auth/ui/auth-error';
 import { FeedService } from './feed.service';
 import { MediaService } from './media.service';
@@ -42,7 +43,7 @@ type AttachmentState =
  */
 @Component({
   selector: 'fc-composer',
-  imports: [ReactiveFormsModule, TagInput, AuthError, SafetyDeclaration],
+  imports: [ReactiveFormsModule, TagInput, AuthError, ContentSettings],
   templateUrl: './composer.html',
   styleUrl: './composer.scss',
 })
@@ -52,6 +53,7 @@ export class Composer {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly contentSettings = viewChild(ContentSettings);
 
   /**
    * Cancel in-flight upload/poll chains when superseded (new file picked, attachment
@@ -77,19 +79,23 @@ export class Composer {
   /**
    * Creator self-declaration (API §7.4 three-layer safety, layer 1).
    *
-   * ONE switch, not two. `MediaViewer.flagged` gates on `hasFlashingWarning ||
-   * hasIntenseMotionWarning` behind a single preference, so the two flags are
-   * indistinguishable to the reader — two separate checkboxes would have been two
-   * identical switches, and a user could untick the wrong one while a shaky video
-   * sailed through. Ticking this sets BOTH fields.
-   *
-   * Setting both is deliberate over-flagging: the user is declaring "this may be
-   * hazardous in either way" and cannot know which it is. Both fields stay distinct
-   * in the data model because they are the natural inputs to automated flashing
-   * detection later, and because a photosensitivity seizure risk is a harder hazard
-   * than a motion nuisance — the day they diverge, they should not have to share a column.
+   * Flags live in the content-settings dialog (`fc-content-settings`), not as inline
+   * checkboxes — the composer stays clean no matter how many hazards accumulate.
+   * The dictionary is sent as one `SafetyFlags` JSON form field, so adding a new
+   * hazard needs zero API changes.
    */
-  protected readonly warnSafety = signal(false);
+  public readonly warnSafety = signal(false);
+  public readonly warnArachnophobia = signal(false);
+  public readonly warnExplicit = signal(false);
+
+  /** All flags as a dictionary, sent as one JSON field in the upload request. */
+  protected readonly safetyFlags = computed<SafetyFlags>(() => ({
+    ...SAFETY_FLAG_DEFAULTS,
+    flashing: this.warnSafety(),
+    intenseMotion: this.warnSafety(),
+    arachnophobia: this.warnArachnophobia(),
+    explicit: this.warnExplicit(),
+  }));
   /**
    * Reactive verification state (from the session, not a one-shot fetch).
    * The notice renders BEFORE anything is typed — the old design only reacted to
@@ -164,10 +170,7 @@ export class Composer {
     const preview = URL.createObjectURL(file);
     this.attachment.set({ kind: 'uploading', percent: 0, preview });
     this.superseded.next(); // a previous in-flight upload/poll must not land here
-    const flags = {
-      hasFlashingWarning: this.warnSafety(),
-      hasIntenseMotionWarning: this.warnSafety(),
-    };
+    const flags = this.safetyFlags();
     this.media
       .upload(file, flags)
       .pipe(takeUntil(this.superseded), takeUntilDestroyed(this.destroyRef))
@@ -333,6 +336,14 @@ export class Composer {
         },
         error: () => this.resending.set(false),
       });
+  }
+
+  protected openContentSettings(): void {
+    this.contentSettings()?.open();
+  }
+
+  protected closeContentSettings(): void {
+    this.contentSettings()?.close();
   }
 
   private reset(): void {

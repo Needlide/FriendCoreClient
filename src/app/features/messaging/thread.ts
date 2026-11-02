@@ -39,6 +39,7 @@ import {
   MediaUploadResponse,
   UploadProgress,
 } from '../../core/models/posts.models';
+import { SAFETY_FLAG_DEFAULTS } from '../../core/models/safety-flags';
 import { MediaViewer } from '../feed/media-viewer';
 import { RelativeTimePipe } from '../feed/relative-time.pipe';
 import { AuthError } from '../auth/ui/auth-error';
@@ -701,11 +702,13 @@ export class Thread implements OnDestroy {
     this.attachment.set({ kind: 'uploading', percent: 0, preview });
     this.superseded.next();
     this.media
-      // The declaration sets both fields: the sender can say "one of these might apply", not
-      // which. Over-flagging is the safe direction (see SafetyDeclaration).
+      // The declaration sets both flags: the sender can say "one of these might apply", not
+      // which. Over-flagging is the safe direction (see SafetyDeclaration). Everything the
+      // DM composer does not offer stays at the shared default rather than being re-listed.
       .upload(file, {
-        hasFlashingWarning: this.warnSafety(),
-        hasIntenseMotionWarning: this.warnSafety(),
+        ...SAFETY_FLAG_DEFAULTS,
+        flashing: this.warnSafety(),
+        intenseMotion: this.warnSafety(),
       })
       .pipe(takeUntil(this.superseded), takeUntilDestroyed(this.destroyRef))
       .subscribe({

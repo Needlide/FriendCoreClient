@@ -30,6 +30,7 @@
   } @else if (tab() === 'people') {
     @if (people().length === 0) {
       <p>Nothing new to discover right now. Check back later.</p>
+      <p><a routerLink="/onboarding">Review your interests</a> — matching starts with at least one tag.</p>
     } @else {
       <ul class="rows">
         @for (p of people(); track p.id) {
@@ -39,6 +40,7 @@
               [displayName]="p.displayName"
               [bio]="p.bio"
               (blocked)="dropBlocked($event)"
+              (muted)="dropMuted($event)"
             />
           </li>
         }
@@ -47,6 +49,7 @@
   } @else {
     @if (posts().length === 0) {
       <p>No posts match your interests yet.</p>
+      <p><a routerLink="/onboarding">Review your interests</a> — matching starts with at least one tag.</p>
     } @else {
       <ol class="rows posts">
         @for (p of posts(); track p.id) {
