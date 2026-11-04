@@ -59,6 +59,28 @@ npm run build
 Output goes to `dist/`. Auth, onboarding, feed, discovery, and messaging routes
 are lazy-loaded chunks.
 
+## Deployment (Heroku)
+
+The client is a static SPA — there is no server of its own. In production it is
+served by [`serve`](https://github.com/vercel/serve) with a single-page fallback
+(rewrites unknown paths to `index.html`, required for the deep-link routes).
+
+- On deploy, Heroku runs the automatic `heroku-postbuild` script →
+  `ng build --configuration production` → output in `dist/friendcore-client/browser`.
+- The `Procfile` (`web: npm run serve`) starts the static server, which binds
+  `$PORT` → `serve -s dist/friendcore-client/browser -l $PORT`.
+
+Because Heroku installs dependencies with `NODE_ENV=production` (skipping
+`devDependencies`), the Angular CLI toolchain (`@angular/cli`,
+`@angular/build`, `@angular/compiler-cli`) must live in `dependencies` — it now
+does, so the `ng` binary and the build are available during the Heroku build.
+
+Local production check:
+
+```bash
+npm run build && npm run serve
+```
+
 ## Running unit tests
 
 ```bash
