@@ -61,14 +61,20 @@ are lazy-loaded chunks.
 
 ## Deployment (Heroku)
 
-The client is a static SPA — there is no server of its own. In production it is
-served by [`serve`](https://github.com/vercel/serve) with a single-page fallback
-(rewrites unknown paths to `index.html`, required for the deep-link routes).
+The production bundle is served by `server.js` — a small Express server that also
+reverse-proxies `/api` and `/hubs` to the API. The proxy is not cosmetic: the API
+sets the refresh cookie `SameSite=Strict`, and `*.herokuapp.com` is on the Public
+Suffix List, so two Heroku apps are cross-site and the cookie would never flow
+between them. Going through this origin keeps the browser same-origin, exactly as
+in local development and in the intended single-domain production layout.
 
 - On deploy, Heroku runs the automatic `heroku-postbuild` script →
   `ng build --configuration production` → output in `dist/friendcore-client/browser`.
-- The `Procfile` (`web: npm run serve`) starts the static server, which binds
-  `$PORT` → `serve -s dist/friendcore-client/browser -l $PORT`.
+- The `Procfile` (`web: npm run serve`) runs `node server.js`, which listens on
+  `$PORT`, serves the SPA with history fallback, and proxies `/api` + `/hubs`
+  (WebSocket upgrades included) to `API_ORIGIN`.
+- Set `API_ORIGIN` as a config var on the client app, e.g.
+  `heroku config:set API_ORIGIN=https://<api-app>.herokuapp.com`.
 
 Because Heroku installs dependencies with `NODE_ENV=production` (skipping
 `devDependencies`), the Angular CLI toolchain (`@angular/cli`,
@@ -78,7 +84,8 @@ does, so the `ng` binary and the build are available during the Heroku build.
 Local production check:
 
 ```bash
-npm run build && npm run serve
+npm run build
+API_ORIGIN=http://localhost:5024 npm run serve   # then open http://localhost:4200
 ```
 
 ## Running unit tests
