@@ -1,107 +1,169 @@
-# FriendCore web client
+# FriendCore — Web client
 
-Angular v22 single-page app for FriendCore — a privacy-first, chronological,
-follow-only social platform. Custom SCSS tokens, no component library, no trackers.
+The Angular front end for **FriendCore**, a privacy-first social platform with a
+follow-only chronological feed, interest-based discovery, and real-time direct
+messages. Built without a UI component library: every screen, token, and
+interaction is custom.
 
-## Prerequisites
+[API repository](https://github.com/Needlide/FriendCore) · [Live demo](https://friend-core-client-ecb9d732c1d1.herokuapp.com/)
 
-- Node 22 + npm 11 (`packageManager` field pins npm)
-- The FriendCore API running locally (default `http://localhost:5024`;
-  see `src/environments/environment.development.ts`). Docker setup lives in the
-  API repo (`docker-compose.dev.yml`).
+> The demo runs on free-tier infrastructure with seeded fictional accounts.
+> Credentials are available on request.
 
-## Development server
+## Screenshots
 
-```bash
-npm start
+![Home feed](docs/screenshots/feed.jpg)
+
+*Home — only posts from people you follow, newest first. No algorithm, no infinite scroll; a deliberate "Load more" at the end.*
+
+![New post composer](docs/screenshots/composer.jpg)
+
+*The composer opens in a native modal rather than occupying the feed. Drafts survive dismissal, and focus returns to the trigger on close.*
+
+![Direct messages](docs/screenshots/messages.jpg)
+
+*1:1 messaging with replies, reactions, edit/delete, search, read state, and real-time delivery.*
+
+![Profile](docs/screenshots/profile.jpg)
+
+*Profiles, follow state, and posts. Safety actions (report, block, mute) live behind the overflow menu.*
+
+## What it is
+
+FriendCore is a solo-built MVP of a social network that deliberately rejects
+algorithmic feeds and engagement-driven UX. The product principles are visible in
+the interface:
+
+- **The feed is for reading.** Home is follow-only and strictly chronological.
+  Posting is a deliberate action behind a **New post** button, not a form that
+  owns the first screen.
+- **No engagement traps.** No infinite scroll, autoplay, streaks, or
+  re-engagement notifications.
+- **Discovery by interest, not popularity.** People and posts are matched through
+  shared tags chosen during onboarding.
+- **Safety is part of the flow.** Sensitive media is blurred until revealed,
+  reports are available on every content type, and moderation state is explained
+  rather than hidden.
+- **Accessibility is a requirement, not a retrofit.** Native dialogs, visible
+  focus, keyboard-operable menus, reduced-motion support, and WCAG-reviewed
+  tooltip behaviour.
+
+## Feature map
+
+| Route | Feature |
+|---|---|
+| `/auth/*` | Login, registration, email verification, forgot/reset password |
+| `/` | Follow-only chronological feed with cursor pagination, optimistic delete, and post composer modal |
+| `/discover` | Tag-matched people and posts, with follow/block/mute actions |
+| `/u/:username` | Profile, follow state, posts, followers/following |
+| `/posts/:id` | Post detail with comments and likes |
+| `/messages` · `/messages/:id` | Conversation list and 1:1 thread: replies, reactions, edit/delete, search, read state, unread badges |
+| `/notifications` | Notification list, mark-all-read, per-type mute, snooze |
+| `/onboarding` | Interest selection and suggested follows |
+| `/settings/*` | Profile, interests, preferences, keyword filters, appeals, account |
+| `/admin/*` | Moderation dashboard, reports, appeals, users, tags, audit log (role-gated) |
+| `/help` | Product and safety help |
+
+## How it is built
+
+- **Angular 22** with standalone components and **signals** for local state;
+  RxJS is reserved for HTTP and realtime streams.
+- **Fully lazy-loaded routes** — auth, feed, discovery, profiles, messaging,
+  settings, and admin load as separate chunks.
+- **Typed HTTP layer** with a single API client, per-endpoint services, and
+  normalized error shapes. A single-flight refresh interceptor retries once on
+  401 without stampeding the API.
+- **SignalR** for notifications and messaging, with reconnect on a fresh access
+  token.
+- **Custom SCSS design system** — colour, spacing, type, radius, and motion
+  tokens; light/dark themes; no Angular Material, Tailwind, or Bootstrap.
+- **Native `<dialog>`** for the composer, content settings, reporting, and the
+  media lightbox, so focus trapping and Escape handling come from the platform.
+- **Accessibility work** includes skip links, semantic landmarks, labelled form
+  errors, `aria-live` status messages, 44 px touch targets, `prefers-reduced-motion`
+  support, and tooltips that meet WCAG 1.4.13 (hoverable, dismissible, persistent).
+- **Same-origin production proxy** (`server.js`, Express + `http-proxy`) serves
+  the SPA and forwards `/api` and `/hubs` to the API, WebSocket upgrades included.
+
+### Project structure
+
+```
+src/app/
+  core/          auth, API client, models, config, realtime
+  features/      auth, feed, discovery, profile, messaging, notifications,
+                 onboarding, settings, admin, safety, shared UI
+  app.routes.ts  lazy route table
+server.js        production SPA server + same-origin API proxy
+docs/            UI plan, design system, screen/component inventory, a11y notes
 ```
 
-The SPA serves on `http://localhost:3000` — this exact origin is the API's default
-dev CORS origin, and the `SameSite=Strict` refresh cookie flows across ports
-(same site). Keep local dev on plain HTTP: the cookie's `Secure` flag follows
-`Request.IsHttps`, so local HTTPS would silently drop it.
+The design documentation in `docs/` is treated as part of the codebase: screen
+inventory, component contracts, copy rules, and accessibility checklists are kept
+in sync with the implementation.
 
-## Testing from another device on your LAN (e.g. a phone)
-
-The dev servers bind localhost only. To expose them on your home network, with
-`PC_IP` = your machine's LAN address (`ip -4 addr show | grep inet`):
-
-1. **API accepts the phone's origin and listens on all interfaces.** The phone
-   arrives as `http://<PC_IP>:3000`, which is neither the default CORS origin nor
-   reachable on a localhost-only socket:
-   ```bash
-   # in FriendCore/ — env vars only, nothing to revert in files
-   Cors__AllowedOrigins__0=http://<PC_IP>:3000 \
-   ASPNETCORE_URLS=http://0.0.0.0:5024 \
-   dotnet run --project src/FriendCore.API --launch-profile http
-   ```
-2. **Point the SPA at the LAN API.** Temporarily set `apiBaseUrl` in
-   `src/environments/environment.development.ts` to `http://<PC_IP>:5024`
-   (revert afterwards), then:
-   ```bash
-   npx ng serve --host 0.0.0.0 --port 3000
-   ```
-3. **Images need a reachable MinIO URL.** `Storage:PublicBaseUrl` in the API's
-   `appsettings.Development.json` must be `http://<PC_IP>:9000/friendcore-media`
-   (revert afterwards) — `localhost:9000` would resolve to the *phone itself*.
-4. **Firewall.** Allow 3000/5024/9000 inbound (e.g. `sudo ufw allow 3000,5024,9000/tcp`).
-5. Open `http://<PC_IP>:3000` on the phone. Cookies still flow: same IP with
-   different ports counts as same-site, so the refresh cookie works.
-
-Revert the three temporary edits when done — they must never be committed.
-
-## Build
-
-```bash
-npm run build
-```
-
-Output goes to `dist/`. Auth, onboarding, feed, discovery, and messaging routes
-are lazy-loaded chunks.
-
-## Deployment (Heroku)
-
-The production bundle is served by `server.js` — a small Express server that also
-reverse-proxies `/api` and `/hubs` to the API. The proxy is not cosmetic: the API
-sets the refresh cookie `SameSite=Strict`, and `*.herokuapp.com` is on the Public
-Suffix List, so two Heroku apps are cross-site and the cookie would never flow
-between them. Going through this origin keeps the browser same-origin, exactly as
-in local development and in the intended single-domain production layout.
-
-- On deploy, Heroku runs the automatic `heroku-postbuild` script →
-  `ng build --configuration production` → output in `dist/friendcore-client/browser`.
-- The `Procfile` (`web: npm run serve`) runs `node server.js`, which listens on
-  `$PORT`, serves the SPA with history fallback, and proxies `/api` + `/hubs`
-  (WebSocket upgrades included) to `API_ORIGIN`.
-- Set `API_ORIGIN` as a config var on the client app, e.g.
-  `heroku config:set API_ORIGIN=https://<api-app>.herokuapp.com`.
-
-Because Heroku installs dependencies with `NODE_ENV=production` (skipping
-`devDependencies`), the Angular CLI toolchain (`@angular/cli`,
-`@angular/build`, `@angular/compiler-cli`) must live in `dependencies` — it now
-does, so the `ng` binary and the build are available during the Heroku build.
-
-Local production check:
-
-```bash
-npm run build
-API_ORIGIN=http://localhost:5024 npm run serve   # then open http://localhost:4200
-```
-
-## Running unit tests
+## Testing
 
 ```bash
 npm test
 ```
 
-Vitest + jsdom via `ng test`. HTTP is intercepted per-test (`HttpTestingController`);
-no server or sockets needed — realtime pushes are driven by hand through Subjects.
+**338 unit tests** across 50 files, using Vitest with jsdom through the Angular
+test builder. HTTP is intercepted per test with `HttpTestingController`; realtime
+behaviour is driven through subjects. The suite covers components, guards,
+interceptors, services, form validation, and accessibility contracts.
 
-## Docs (read in this order)
+The released build was additionally verified end-to-end in a real browser against
+the deployed app: composer and dialog behaviour, focus restoration, tooltip
+layering, console cleanliness, and a live publish flow.
 
-1. `docs/UI-Plan.md` — **authoritative** route table + screen→endpoint map
-2. `docs/ui-design-plan.md` — philosophy, tokens direction, build order
-3. `docs/design/` — Figma workflow, component kit, screen inventory, copy rules
+## Run locally
 
-When UI-Plan and `design/screens.md` disagree, UI-Plan wins (it is verified
-against the API; `screens.md` tracks Figma).
+Prerequisites: **Node 22 + npm 11**, and the API running locally (default
+`http://localhost:5024`). The API repository's `docker-compose.dev.yml` provides
+PostgreSQL, Redis, and object storage.
+
+```bash
+npm install
+npm start
+```
+
+The app serves on `http://localhost:3000`, which is the API's default development
+CORS origin. Keep local development on plain HTTP: the refresh cookie's `Secure`
+flag follows the request scheme, so local HTTPS would silently drop it.
+
+```bash
+npm run build   # production bundle in dist/friendcore-client/browser
+```
+
+## Deployment
+
+The production client is a small Express server (`server.js`) with two jobs:
+
+1. Serve the built Angular app with SPA history fallback.
+2. Reverse-proxy `/api` and `/hubs` to the API origin.
+
+The proxy is not cosmetic. The API's refresh cookie is `SameSite=Strict`, and
+`*.herokuapp.com` is on the Public Suffix List, so two Heroku apps are cross-site
+and the cookie would never flow. Putting the API behind the client's origin makes
+the browser see one site, exactly as in the intended single-domain production
+layout.
+
+`API_ORIGIN` selects the upstream API; `PORT` is supplied by the platform. The
+Heroku build runs `ng build --configuration production` through
+`heroku-postbuild`, and `Procfile` starts `node server.js`.
+
+## Scope
+
+This is an MVP, intentionally. The client implements the full scope described in
+[`docs/UI-Plan.md`](docs/UI-Plan.md) for auth, feed, discovery, profiles, posts,
+comments, likes, messaging, notifications, settings, and moderation. Deferred by
+product decision: blogging, custom profile CSS/pages, creator monetisation, a
+theme marketplace, end-to-end encrypted DMs, global user search, and a separate
+mobile app. Post and comment editing are also out of scope for this milestone.
+
+The backend's feature map, architecture, and test breakdown live in the
+[API README](https://github.com/Needlide/FriendCore).
+
+---
+
+Built by [Max Lytvyniuk](https://github.com/Needlide).
