@@ -51,6 +51,13 @@ export class Tooltip {
   /** Accessible name for the trigger; describes the help, not the control it precedes. */
   readonly label = input('What does this do?');
 
+  /**
+   * Side the bubble opens on. Defaults to `top`; use `bottom` when the trigger sits
+   * near the top of a scrollable container, where an upward bubble would be clipped
+   * (e.g. the first row of the content-settings drawer).
+   */
+  readonly placement = input<'top' | 'bottom'>('top');
+
   protected readonly visible = signal(false);
 
   /**

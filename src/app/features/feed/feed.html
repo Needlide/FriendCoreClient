@@ -1,8 +1,10 @@
 <div class="feed-page">
   <h1 class="fc-sr-only">Home</h1>
-  <p class="feed-note">Latest from people you follow, newest first.</p>
 
-  <fc-composer (postCreated)="prepend($event)" />
+  <div class="feed-head">
+    <p class="feed-note">Latest from people you follow, newest first.</p>
+    <button type="button" class="fc-new-post" (click)="openComposer()">New post</button>
+  </div>
 
   @if (loading()) {
     <p role="status">Loading your feed…</p>
@@ -43,4 +45,23 @@
       }
     }
   }
+
+  <!--
+    Composer lives in a modal, not inline on the feed: the home page is for reading
+    (spec §9.1, calm-UX), and an always-open form made the first screen about writing.
+    The component stays mounted while closed, so a half-written draft survives Escape.
+  -->
+  <dialog
+    #composerDialog
+    class="composer-dialog"
+    aria-labelledby="composer-h"
+    (click)="onComposerBackdrop($event)"
+  >
+    <div class="composer-shell">
+      <button type="button" class="composer-close" aria-label="Close composer" (click)="closeComposer()">
+        ✕
+      </button>
+      <fc-composer (postCreated)="onPostCreated($event)" />
+    </div>
+  </dialog>
 </div>

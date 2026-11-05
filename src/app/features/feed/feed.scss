@@ -6,10 +6,69 @@
   gap: var(--fc-space-4);
 }
 
+.feed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--fc-space-3);
+  flex-wrap: wrap;
+}
+
 .feed-note {
   margin: 0;
   color: var(--fc-text-muted);
   font-size: var(--fc-text-sm);
+}
+
+.fc-new-post {
+  font: inherit;
+  font-weight: 600;
+  min-height: 2.5rem;
+  padding: 0 var(--fc-space-6);
+  border: 0;
+  border-radius: var(--fc-radius-sm);
+  background: var(--fc-accent);
+  color: var(--fc-accent-contrast);
+  cursor: pointer;
+}
+
+.composer-dialog {
+  width: min(42rem, 92vw);
+  max-height: 90vh;
+  padding: 0;
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius);
+  background: var(--fc-surface);
+  color: var(--fc-text);
+  overflow-y: auto;
+}
+
+.composer-dialog::backdrop {
+  background: rgba(28, 29, 34, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.composer-shell {
+  position: relative;
+  padding: var(--fc-space-4);
+}
+
+.composer-close {
+  position: absolute;
+  top: var(--fc-space-2);
+  right: var(--fc-space-2);
+  display: grid;
+  place-items: center;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fc-text-muted);
+  font: inherit;
+  font-size: var(--fc-text-xl);
+  line-height: 1;
+  cursor: pointer;
 }
 
 .posts {

@@ -1,8 +1,6 @@
+/* Chrome lives on the containing modal (.composer-dialog); the component only owns
+   layout, so it can be dropped into another shell without a nested card look. */
 .composer {
-  background: var(--fc-surface);
-  border: 1px solid var(--fc-border);
-  border-radius: var(--fc-radius);
-  padding: var(--fc-space-4);
   display: grid;
   gap: var(--fc-space-3);
 }

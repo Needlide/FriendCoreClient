@@ -110,6 +110,17 @@ describe('Tooltip', () => {
     expect(bubble(el)).toBeNull();
   });
 
+  it('opens below the trigger when bottom placement is requested', async () => {
+    const { fixture, el } = await create();
+    fixture.componentRef.setInput('placement', 'bottom');
+    trigger(el).click();
+    fixture.detectChanges();
+
+    // A trigger near the top of a scrollable container cannot open upward: the
+    // container clips the bubble. `.below` flips it into the space that exists.
+    expect(bubble(el)?.classList).toContain('below');
+  });
+
   it('describes the trigger with aria-describedby and role=tooltip', async () => {
     const { fixture, el } = await create('Why this matters.');
     hoverIn(el);

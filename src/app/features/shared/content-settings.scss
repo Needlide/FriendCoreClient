@@ -7,8 +7,20 @@
   font: inherit;
   width: min(42rem, 92vw);
   max-height: 88vh;
-  display: grid;
   grid-template-rows: auto 1fr auto;
+  /* Scroll the whole drawer, not the body: an author-level `display` on a <dialog>
+     overrides the UA `dialog:not([open]) { display: none }` rule, so this must be
+     scoped to [open] — otherwise the drawer renders inline on every page forever
+     (and close() is a no-op because it was never actually opened). */
+  overflow-y: auto;
+}
+
+.drawer[open] {
+  display: grid;
+}
+
+.drawer:not([open]) {
+  display: none;
 }
 
 .drawer::backdrop {
@@ -46,7 +58,10 @@
 
 .drawer-body {
   padding: var(--fc-space-4);
-  overflow-y: auto;
+  /* Deliberately visible: a scrolling body clips tooltips that open above their
+     toggle (WCAG 1.4.13 requires the bubble to be fully readable). The dialog
+     itself scrolls instead. */
+  overflow: visible;
 }
 
 .drawer-body p {

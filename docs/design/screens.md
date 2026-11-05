@@ -148,7 +148,13 @@ Components: [`components.md`](components.md) · Copy rules: [`content-and-a11y.m
 
 ---
 
-## 5. Post composer (inline or modal)
+## 5. Post composer (modal)
+
+Opened from the feed's **New post** button, never rendered inline. The home feed is for
+reading (spec §9.1: follow-only, chronological); an always-open form made the first screen
+about writing and, because a native `<dialog>` is `display:none` until opened, a stray
+`display` rule turned it into a permanently floating panel. The composer stays mounted while
+closed, so Escape/backdrop dismiss does not discard a draft.
 
 | | |
 |---|---|

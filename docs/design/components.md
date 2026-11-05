@@ -284,8 +284,9 @@ Bottom sheet variant of Modal for mobile actions/menus. Same a11y as Modal; swip
 ### PostComposer
 
 | **Figma** | `PostComposer` |
-| **Angular** | `fc-post-composer` |
+| **Angular** | `fc-composer` (inside the feed's `New post` modal) |
 | **States** | idle, uploading, processing, ready-to-post, error, blocked-unverified |
+| **Entry** | Feed → `New post` → native `<dialog>`; closes on publish, ✕, backdrop, or Escape |
 
 | A11y | Requirement |
 |---|---|

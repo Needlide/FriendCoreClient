@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { ApiError } from '../../core/models/api-error';
@@ -9,10 +9,16 @@ import { FeedService } from './feed.service';
 import { PostCard } from './post-card';
 
 /**
- * Home feed (`/`, UI-Plan §1): composer on top, chronological cards below.
- * Cursor pagination with an explicit "Load more" button — never infinite scroll
- * (calm-UX principle, COGA checklist). `nextCursor === null` is the end; the API
- * fixes the page at 20, so a short page without a cursor also ends the feed.
+ * Home feed (`/`, UI-Plan §1): chronological cards, plus a "New post" button that
+ * opens the composer in a modal. Cursor pagination with an explicit "Load more"
+ * button — never infinite scroll (calm-UX principle, COGA checklist).
+ * `nextCursor === null` is the end; the API fixes the page at 20, so a short page
+ * without a cursor also ends the feed.
+ *
+ * The composer is a modal rather than an always-open panel: the home page is for
+ * reading, and posting is a deliberate act (spec §9.1 keeps the feed follow-only and
+ * chronological; nothing in it asks the reader to write first). The modal keeps the
+ * component mounted while closed, so an accidental Escape does not discard a draft.
  *
  * Deletion and publishing mutate the LOCAL list (drop / prepend) — no refetch,
  * no lost scroll position. Errors that escape here render the global retry block.
@@ -32,6 +38,8 @@ export class Feed {
   protected readonly loading = signal(true);
   protected readonly loadingMore = signal(false);
   protected readonly error = signal<ApiError | null>(null);
+
+  private readonly composerDialog = viewChild<ElementRef<HTMLDialogElement>>('composerDialog');
 
   constructor() {
     this.loadFirst();
@@ -75,6 +83,29 @@ export class Feed {
   protected retry(): void {
     this.error.set(null);
     this.loadFirst();
+  }
+
+  /** Open the composer, putting the cursor in the textarea rather than on ✕. */
+  protected openComposer(): void {
+    const dialog = this.composerDialog()?.nativeElement;
+    if (!dialog || dialog.open) return;
+    dialog.showModal();
+    dialog.querySelector<HTMLTextAreaElement>('textarea')?.focus();
+  }
+
+  protected closeComposer(): void {
+    this.composerDialog()?.nativeElement.close();
+  }
+
+  /** A click whose target is the dialog itself is a backdrop click (contents bubble). */
+  protected onComposerBackdrop(event: MouseEvent): void {
+    if (event.target === this.composerDialog()?.nativeElement) this.closeComposer();
+  }
+
+  /** Publishing is the one action that should dismiss the modal by itself. */
+  protected onPostCreated(post: Post): void {
+    this.prepend(post);
+    this.closeComposer();
   }
 
   /** Template entry points — public because templates can only call public members. */

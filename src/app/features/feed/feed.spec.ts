@@ -28,6 +28,14 @@ describe('Feed', () => {
   let http: HttpTestingController;
 
   beforeEach(async () => {
+    // jsdom has the <dialog> element but not the modal methods.
+    window.HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    window.HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+    };
+
     await configureAuthTestBed([Feed]);
     http = TestBed.inject(HttpTestingController);
   });
@@ -75,6 +83,39 @@ describe('Feed', () => {
     fixture.detectChanges();
     expect(el.textContent).toContain('Your feed is empty');
     expect(el.querySelector('a[href="/onboarding"]')).not.toBeNull();
+  });
+
+  it('keeps the composer closed until New post is pressed', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/feed/home').flush({ posts: [post('1')], nextCursor: null });
+    fixture.detectChanges();
+
+    const dialog = el.querySelector<HTMLDialogElement>('dialog.composer-dialog')!;
+    // The feed is for reading: an always-open form made the first screen about
+    // writing, and a <dialog> that renders without being opened is invisible to
+    // the reader but still swallows the page underneath.
+    expect(dialog.hasAttribute('open')).toBe(false);
+
+    el.querySelector<HTMLButtonElement>('.fc-new-post')!.click();
+    fixture.detectChanges();
+    expect(dialog.hasAttribute('open')).toBe(true);
+  });
+
+  it('closes the composer and prepends the post after publishing', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/feed/home').flush({ posts: [], nextCursor: null });
+    fixture.detectChanges();
+
+    el.querySelector<HTMLButtonElement>('.fc-new-post')!.click();
+    fixture.detectChanges();
+
+    (fixture.componentInstance as unknown as { onPostCreated(p: Post): void })
+      .onPostCreated(post('fresh'));
+    fixture.detectChanges();
+
+    const dialog = el.querySelector<HTMLDialogElement>('dialog.composer-dialog')!;
+    expect(dialog.hasAttribute('open')).toBe(false);
+    expect(el.querySelectorAll('fc-post-card').length).toBe(1);
   });
 
   it('prepends a published post and drops a deleted one without refetching', () => {

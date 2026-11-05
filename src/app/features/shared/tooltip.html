@@ -12,5 +12,11 @@
 @if (visible()) {
   <!-- role="tooltip" + aria-describedby on the trigger is the pairing assistive tech expects;
        it is not a live region, so it is announced as a description rather than interrupting. -->
-  <span class="bubble" role="tooltip" [id]="tooltipId">{{ text() }}</span>
+  <span
+    class="bubble"
+    [class.below]="placement() === 'bottom'"
+    role="tooltip"
+    [id]="tooltipId"
+    >{{ text() }}</span
+  >
 }

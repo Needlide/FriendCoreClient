@@ -57,6 +57,12 @@
   cursor: default;
 }
 
+/* Opens downward for triggers near a container's top edge. */
+.bubble.below {
+  top: calc(100% + var(--fc-space-1));
+  bottom: auto;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .trigger {
     transition: none;
