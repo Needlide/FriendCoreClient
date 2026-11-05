@@ -28,6 +28,8 @@ export const TagsEndpoints = {
 export const UsersEndpoints = {
   profileTags: '/users/me/tags',
   updateProfile: '/users/me/profile',
+  blocks: '/users/me/blocks',
+  mutes: '/users/me/mutes',
   preferences: '/users/me/preferences',
   keywordFilters: '/users/me/keyword-filters',
   notificationTypes: '/users/me/notification-types',

@@ -29,6 +29,13 @@
       >Filters</a
     >
     <a
+      routerLink="/settings/safety"
+      routerLinkActive="active"
+      #safetyRla="routerLinkActive"
+      [attr.aria-current]="safetyRla.isActive ? 'page' : null"
+      >Blocks &amp; mutes</a
+    >
+    <a
       routerLink="/settings/appeals"
       routerLinkActive="active"
       #appealsRla="routerLinkActive"

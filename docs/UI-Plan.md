@@ -35,6 +35,7 @@ live at the server root.
 | `/settings/interests` | auth | Edit tags (onboarding recovery) | `GET /users/me/tags`, `PUT /users/me/tags` |
 | `/settings/preferences` | auth | Toggles (flashing/motion/autoplay/noise/content) | `PATCH /users/me/preferences` |
 | `/settings/filters` | auth | Keyword filters | `GET /users/me/keyword-filters`, `PATCH /users/me/keyword-filters` |
+| `/settings/safety` | auth | Blocks & mutes lists, unblock/unmute | `GET /users/me/blocks`, `GET /users/me/mutes`, `DELETE /users/{username}/block`, `DELETE /users/{username}/mute` |
 | `/settings/appeals` | auth | My moderation history + appeal | `GET /users/me/moderation-actions`, `POST /appeals` |
 | `/settings/account` | auth | Session, verification state, logout | `POST /auth/resend-verification`, `POST /auth/logout` |
 | `/help` (or Messages empty-state entry) | auth | **Support chat entry → thread** | `POST /conversations/support`, then standard thread endpoints |
@@ -252,7 +253,7 @@ image, never an unsafely-shown one.
 | `screens.md §10`: `/settings/username` → `PATCH .../username` | **Endpoint does not exist** (no command, no entity field) | **Cut the screen.** Usernames immutable for MVP |
 | `screens.md §7`: "Activity status — if set" | **No API exists** (no command wired) | **Cut from profile.** Revisit post-MVP |
 | `screens.md §12`: Search, `GET /users/search` | **Endpoint does not exist** | **Cut search.** Top-bar search box in the shell diagram — remove it or keep as a visual slot marked deferred |
-| `screens.md §10`: "Blocked / muted lists" in settings | **No list endpoints** (only block/unblock, mute/unmute by username) | No unblock-list screen possible. Workaround: unblock from the profile (but blocked profiles 404…). **Server follow-up candidate**: `GET /users/me/blocks` + `/mutes` (small, high UX value — otherwise a block is nearly irreversible from the UI) |
+| `screens.md §10`: "Blocked / muted lists" in settings | **Built** at `/settings/safety` (Nov 2026) | `GET /users/me/blocks` + `/mutes` return user summaries so names can be shown. The block list is directional — blocks created by someone else are never revealed, matching the 404-not-403 rule |
 
 ---
 

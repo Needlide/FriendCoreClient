@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiClient } from '../../core/api/api-client';
+import { UserListResponse } from '../../core/models/profile.models';
 import { UsersEndpoints } from '../../core/config/endpoints';
 
 /**
@@ -38,5 +39,15 @@ export class SocialService {
 
   unmute(username: string): Observable<void> {
     return this.api.delete<void>(UsersEndpoints.mute(username));
+  }
+
+  /** People this user blocked. Directional: blocks created by others are never revealed. */
+  getBlocks(): Observable<UserListResponse> {
+    return this.api.get<UserListResponse>(UsersEndpoints.blocks);
+  }
+
+  /** People this user muted. Mute is one-way and does not hide the profile. */
+  getMutes(): Observable<UserListResponse> {
+    return this.api.get<UserListResponse>(UsersEndpoints.mutes);
   }
 }

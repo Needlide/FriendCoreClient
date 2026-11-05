@@ -107,6 +107,11 @@ export const routes: Routes = [
               import('./features/settings/keyword-filters').then((m) => m.KeywordFilters),
           },
           {
+            path: 'safety',
+            loadComponent: () =>
+              import('./features/settings/blocked-muted').then((m) => m.BlockedMuted),
+          },
+          {
             path: 'appeals',
             loadComponent: () => import('./features/settings/appeals').then((m) => m.Appeals),
           },

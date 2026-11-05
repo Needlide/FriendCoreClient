@@ -320,8 +320,23 @@ closed, so Escape/backdrop dismiss does not discard a draft.
 | Preferences | `/settings/preferences` | `GET` + `PATCH .../preferences` |
 | Keyword filters | `/settings/filters` | `GET/PATCH .../keyword-filters` |
 | Moderation & appeals | `/settings/appeals` | `GET users/me/moderation-actions`, `POST /appeals` |
+| Blocks & mutes | `/settings/safety` | `GET /users/me/blocks`, `GET /users/me/mutes`, `DELETE /users/{username}/block|mute` |
 | Username change | — | DEFERRED — no endpoint exists; usernames immutable for MVP |
-| Blocked / muted lists | — | DEFERRED — no list endpoints (only block/unblock, mute/unmute by username); unblock from the profile, or await a future `GET /users/me/blocks` |
+
+### Blocks & mutes screen states
+
+| State | Design requirement |
+|---|---|
+| ✅ Loaded | Two cards (Blocked, Muted) with counts, display name, username, row action |
+| ✅ Empty | "You haven't blocked/muted anyone." — never a blank card |
+| ✅ Unblock / unmute | Row removed locally after 204; success notice; no refetch |
+| ✅ Busy | Per-row button disabled and relabelled ("Unblocking…") |
+| ✅ Load error | One calm error plus Try again for both lists (they load together) |
+| ✅ Action error | Inline error above the cards; the row stays so the action can be retried |
+
+The block list is **directional**: only blocks the current user created appear.
+A block created by someone else is never revealed — same principle as the
+404-not-403 profile rule. Mutes are one-way and do not hide the profile.
 
 ### Preferences screen states
 

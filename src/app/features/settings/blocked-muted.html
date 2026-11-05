@@ -1,0 +1,84 @@
+<div class="settings-page">
+  <h1>Blocks &amp; mutes</h1>
+  <p class="lede">
+    Blocking is mutual invisibility: you can't find each other, and their profile stays hidden
+    until you unblock them. Muting hides someone's posts from your home feed without telling them;
+    their profile stays visible.
+  </p>
+
+  @if (loading()) {
+    <p role="status">Loading your safety lists…</p>
+  } @else if (error()) {
+    <fc-auth-error [error]="error()" context="generic" />
+    <button type="button" class="fc-secondary retry" (click)="retry()">Try again</button>
+  } @else {
+    <fc-auth-error [error]="actionError()" context="generic" />
+
+    @if (notice()) {
+      <p class="notice" role="status">{{ notice() }}</p>
+    }
+
+    <section class="card" aria-labelledby="blocked-h">
+      <h2 id="blocked-h">Blocked <span class="count">{{ blocked().length }}</span></h2>
+      <p class="explain">These people can't see you or interact with you.</p>
+
+      @if (blocked().length === 0) {
+        <p class="empty">You haven't blocked anyone.</p>
+      } @else {
+        <ul class="rows">
+          @for (person of blocked(); track person.userId) {
+            <li class="row">
+              <span class="avatar" aria-hidden="true">{{ initials(person.displayName) }}</span>
+              <span class="who">
+                <strong>{{ person.displayName }}</strong>
+                <span class="username">@{{ person.username }}</span>
+              </span>
+              <button
+                type="button"
+                class="fc-secondary"
+                [disabled]="busy() === 'block:' + person.username"
+                [attr.aria-label]="'Unblock @' + person.username"
+                (click)="unblock(person)"
+              >
+                {{ busy() === 'block:' + person.username ? 'Unblocking…' : 'Unblock' }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="card" aria-labelledby="muted-h">
+      <h2 id="muted-h">Muted <span class="count">{{ muted().length }}</span></h2>
+      <p class="explain">
+        Their posts are hidden from your home feed. They aren't notified, and you can still visit
+        their profile.
+      </p>
+
+      @if (muted().length === 0) {
+        <p class="empty">You haven't muted anyone.</p>
+      } @else {
+        <ul class="rows">
+          @for (person of muted(); track person.userId) {
+            <li class="row">
+              <span class="avatar" aria-hidden="true">{{ initials(person.displayName) }}</span>
+              <span class="who">
+                <strong>{{ person.displayName }}</strong>
+                <span class="username">@{{ person.username }}</span>
+              </span>
+              <button
+                type="button"
+                class="fc-secondary"
+                [disabled]="busy() === 'mute:' + person.username"
+                [attr.aria-label]="'Unmute @' + person.username"
+                (click)="unmute(person)"
+              >
+                {{ busy() === 'mute:' + person.username ? 'Unmuting…' : 'Unmute' }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+  }
+</div>

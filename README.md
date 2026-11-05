@@ -60,7 +60,7 @@ the interface:
 | `/messages` · `/messages/:id` | Conversation list and 1:1 thread: replies, reactions, edit/delete, search, read state, unread badges |
 | `/notifications` | Notification list, mark-all-read, per-type mute, snooze |
 | `/onboarding` | Interest selection and suggested follows |
-| `/settings/*` | Profile, interests, preferences, keyword filters, appeals, account |
+| `/settings/*` | Profile, interests, preferences, keyword filters, blocks & mutes, appeals, account |
 | `/admin/*` | Moderation dashboard, reports, appeals, users, tags, audit log (role-gated) |
 | `/help` | Product and safety help |
 
@@ -107,7 +107,7 @@ in sync with the implementation.
 npm test
 ```
 
-**338 unit tests** across 50 files, using Vitest with jsdom through the Angular
+**343 unit tests** across 51 files, using Vitest with jsdom through the Angular
 test builder. HTTP is intercepted per test with `HttpTestingController`; realtime
 behaviour is driven through subjects. The suite covers components, guards,
 interceptors, services, form validation, and accessibility contracts.
