@@ -27,6 +27,19 @@ describe('FollowButton', () => {
     ) as HTMLButtonElement | null;
   }
 
+  it('keeps the visible label inside the accessible name (axe label-content-name-mismatch)', () => {
+    const idle = create();
+    const follow = primaryButton(idle.el)!;
+    expect(follow.textContent?.trim()).toBe('Follow');
+    expect(follow.getAttribute('aria-label')).toContain('Follow');
+
+    const active = create(true);
+    const following = primaryButton(active.el)!;
+    expect(following.textContent?.trim()).toBe('Following');
+    // "Unfollow bob" would not contain the visible "Following" and fails WCAG 2.5.3.
+    expect(following.getAttribute('aria-label')).toContain('Following');
+  });
+
   it('renders Following on a cold load when the server says the viewer already follows', () => {
     // The regression: the button only knew it was following if you had clicked in this
     // session, so a refresh showed "Follow" while the follow was still in effect.

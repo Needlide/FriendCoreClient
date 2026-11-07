@@ -107,7 +107,7 @@ in sync with the implementation.
 npm test
 ```
 
-**351 unit tests** across 52 files, using Vitest with jsdom through the Angular
+**352 unit tests** across 52 files, using Vitest with jsdom through the Angular
 test builder. HTTP is intercepted per test with `HttpTestingController`; realtime
 behaviour is driven through subjects. The suite covers components, guards,
 interceptors, services, form validation, and accessibility contracts.

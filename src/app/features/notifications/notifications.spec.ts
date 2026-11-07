@@ -158,7 +158,7 @@ describe('Notifications', () => {
     expect(el.querySelector('.row.unread')).not.toBeNull();
 
     el.querySelector<HTMLButtonElement>(
-      'button[aria-label="Mark notification from Bob as read"]',
+      'button[aria-label="Mark read notification from Bob"]',
     )!.click();
     const req = expectApi(http, '/notifications/n1/read');
     expect(req.request.method).toBe('POST');

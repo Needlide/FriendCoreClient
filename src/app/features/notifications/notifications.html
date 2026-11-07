@@ -110,7 +110,7 @@
                 type="button"
                 class="row-action"
                 [disabled]="actionBusy() === n.id"
-                [attr.aria-label]="'Mark notification from ' + n.actor.displayName + ' as read'"
+                [attr.aria-label]="'Mark read notification from ' + n.actor.displayName"
                 (click)="markRead(n)"
               >
                 Mark read

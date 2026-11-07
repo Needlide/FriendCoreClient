@@ -17,7 +17,7 @@ type FollowState = 'idle' | 'saving' | 'following';
           type="button"
           class="fc-secondary"
           (click)="toggle()"
-          [attr.aria-label]="'Unfollow ' + username()"
+          [attr.aria-label]="'Following ' + username() + ', click to unfollow'"
         >
           Following
         </button>
