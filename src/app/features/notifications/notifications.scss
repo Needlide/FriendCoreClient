@@ -89,17 +89,54 @@ h1 {
   background: var(--fc-surface);
   border: 1px solid var(--fc-border);
   border-radius: var(--fc-radius-sm);
+  display: flex;
+  align-items: center;
 }
 
 .row-link {
   display: flex;
   gap: var(--fc-space-3);
   align-items: center;
+  flex: 1;
+  min-width: 0;
   padding: var(--fc-space-3) var(--fc-space-4);
   /* The row text is the accessible name, so the link itself must not announce anything extra. */
   color: inherit;
   text-decoration: none;
   border-radius: inherit;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--fc-space-1);
+  padding-right: var(--fc-space-3);
+  flex-shrink: 0;
+}
+
+.row-action {
+  font: inherit;
+  font-size: var(--fc-text-sm);
+  background: none;
+  border: 1px solid var(--fc-border);
+  border-radius: var(--fc-radius-sm);
+  color: var(--fc-text-muted);
+  padding: var(--fc-space-1) var(--fc-space-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.row-action:hover {
+  color: var(--fc-text);
+}
+
+.row-action.danger {
+  color: var(--fc-danger);
+}
+
+.row-action:disabled {
+  opacity: 0.6;
+  cursor: progress;
 }
 
 .row-link:hover .actor {

@@ -273,11 +273,30 @@ Bottom sheet variant of Modal for mobile actions/menus. Same a11y as Modal; swip
 | **Content** | author (avatar + name + @username), relative time, text, media (medium variant), like count, comment count, actions |
 | **States** | default, liked (by viewer), loading skeleton |
 
+The like count is a button that opens `fc-likers-dialog`; the heart itself only
+toggles the like. Keeping the two controls separate avoids one button with two
+unrelated actions and two different accessible names.
+
 | A11y | Requirement |
 |---|---|
 | Role | `<article>` |
 | Label | Author name in heading; time in `<time datetime="...">` |
 | Keyboard | Action buttons focusable in logical order |
+
+---
+
+### LikersDialog
+
+| **Angular** | `fc-likers-dialog` |
+| **Content** | "Liked by" heading; people rows (avatar initials, display name, @username) linking to profiles |
+| **States** | loading, loaded, empty ("No likes to show."), error |
+| **Entry** | PostCard like count → native `<dialog>`; Escape, backdrop, or Close dismisses |
+
+| A11y | Requirement |
+|---|---|
+| Role | Native `<dialog>` with `showModal()` focus trap |
+| Label | `aria-labelledby` pointing at the "Liked by" heading |
+| Keyboard | Close is autofocused; profile links are normal tab stops |
 
 ---
 
@@ -447,7 +466,7 @@ Each toggle explains what it does in plain language beside the control.
 ## 3. Component build order (Angular)
 
 Built as of Sep 2026 (in `src/app/features/`): PostCard, PostComposer (`fc-composer`),
-MediaViewer, TagInput, UserCard, FollowButton, BlockMuteMenu, ConversationList,
+MediaViewer, LikersDialog, TagInput, UserCard, FollowButton, BlockMuteMenu, ConversationList,
 MessageThread/MessageComposer (thread page), NotificationBell, ReportDialog,
 KeywordFilterEditor, PreferencesPanel (preferences page), AppShell (`fc-shell`).
 

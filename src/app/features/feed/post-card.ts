@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { Post } from '../../core/models/posts.models';
 import { ReportTarget } from '../../core/models/settings.models';
 import { FeedService } from './feed.service';
+import { LikersDialog } from './likers-dialog';
 import { MediaViewer } from './media-viewer';
 import { RelativeTimePipe } from './relative-time.pipe';
 import { ReportDialog } from '../safety/report-dialog';
@@ -24,7 +25,7 @@ import { LinkifiedText } from '../shared/linkified-text';
  */
 @Component({
   selector: 'fc-post-card',
-  imports: [RouterLink, MediaViewer, RelativeTimePipe, ReportDialog, LinkifiedText],
+  imports: [RouterLink, MediaViewer, RelativeTimePipe, ReportDialog, LinkifiedText, LikersDialog],
   templateUrl: './post-card.html',
   styleUrl: './post-card.scss',
 })
@@ -50,6 +51,10 @@ export class PostCard {
 
   protected likeCount(): number {
     return this.post().likeCount + this.likeDelta();
+  }
+
+  protected openLikers(dialog: LikersDialog): void {
+    dialog.open();
   }
 
   protected initials(): string {

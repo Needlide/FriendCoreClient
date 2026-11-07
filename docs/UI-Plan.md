@@ -25,12 +25,12 @@ live at the server root.
 | `/auth/verify-email?token=` | guest | Verify email | `POST /auth/verify-email` |
 | `/onboarding` | auth | Tag selection → suggested follows | `PUT /users/me/tags`, `GET /tags/autocomplete`, `GET /feed/discovery/people`, `POST /users/{u}/follow` |
 | `/` | auth | Home feed | `GET /feed/home?cursor=` |
-| `/posts/:id` | auth | Post detail + comments | `GET /posts/{id}`, `GET /posts/{id}/comments`, `POST /posts/{id}/comments`, `DELETE /api/v1/comments/{commentId}`, like/unlike, `POST /posts/{id}/report` |
+| `/posts/:id` | auth | Post detail + comments + likers dialog | `GET /posts/{id}`, `GET /posts/{id}/likes`, `GET /posts/{id}/comments`, `POST /posts/{id}/comments`, `DELETE /api/v1/comments/{commentId}`, like/unlike, `POST /posts/{id}/report` |
 | `/discover` | auth | Discovery (People · Posts tabs) | `GET /feed/discovery/people`, `GET /feed/discovery/posts` |
 | `/u/:username` | auth | Profile (self/other) + user posts | `GET /users/{username}`, `GET /users/{username}/posts`, `GET /users/{username}/followers|following`, follow/unfollow, block/unblock, mute/unmute, `POST /conversations`, `POST /users/{username}/report` |
 | `/messages` | auth | Conversation list | `GET /conversations` |
 | `/messages/:id` | auth | Thread | `GET /conversations/{id}/messages?cursor=`, `POST /conversations/{id}/messages`, `POST /conversations/{id}/read`, `POST /conversations/{id}/messages/{messageId}/reactions`, hubs `MessageReceived` |
-| `/notifications` | auth | List (actor names link to profiles), per-type mute toggles, mark-all-read | `GET /notifications`, `GET /notifications/unread-count`, `POST /notifications/read`, `GET/PATCH /users/me/notification-types`, hub `NotificationReceived` |
+| `/notifications` | auth | List, per-row read/delete, per-type mute toggles, mark-all-read | `GET /notifications`, `GET /notifications/unread-count`, `POST /notifications/read`, `POST /notifications/{id}/read`, `DELETE /notifications/{id}`, `GET/PATCH /users/me/notification-types`, hub `NotificationReceived` |
 | `/settings/profile` | auth | Edit profile | `PATCH /users/me/profile` |
 | `/settings/interests` | auth | Edit tags (onboarding recovery) | `GET /users/me/tags`, `PUT /users/me/tags` |
 | `/settings/preferences` | auth | Toggles (flashing/motion/autoplay/noise/content) | `PATCH /users/me/preferences` |
@@ -181,10 +181,11 @@ otherwise block is immediate, no modal. Blocking the admin account → 400
 
 Quiet bell (header, count only — no pulse). `GET /notifications/unread-count`
 for badge, `GET /notifications` for hydrated list (pushes are ID-only),
-`POST /notifications/read`. Push → bump badge → reconcile list. Actor names link
-to profiles. "What notifies you" toggles mute whole types via
-`GET/PATCH /users/me/notification-types` — muted types are never created
-server-side, so the bell stays truthful with no client math. "Snooze everything"
+`POST /notifications/read` for all, plus `POST /notifications/{id}/read` and
+`DELETE /notifications/{id}` for one row (both return the new unread count). Push →
+bump badge → reconcile list. Actor names link to profiles. "What notifies you" toggles
+mute whole types via `GET/PATCH /users/me/notification-types` — muted types are never
+created server-side, so the bell stays truthful with no client math. "Snooze everything"
 (`GET`, `POST`, `DELETE /users/me/snooze`) silences all types until an instant;
 the bell shows muted while active.
 

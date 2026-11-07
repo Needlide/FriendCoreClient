@@ -59,6 +59,7 @@ export const PostsEndpoints = {
   posts: '/posts',
   byId: (id: string) => `/posts/${id}`,
   like: (id: string) => `/posts/${id}/like`,
+  likes: (id: string) => `/posts/${id}/likes`,
   comments: (id: string) => `/posts/${id}/comments`,
 } as const;
 
@@ -81,6 +82,8 @@ export const NotificationsEndpoints = {
   list: '/notifications',
   unreadCount: '/notifications/unread-count',
   markRead: '/notifications/read',
+  byId: (id: string) => `/notifications/${id}`,
+  markReadById: (id: string) => `/notifications/${id}/read`,
 } as const;
 
 /** Conversation routes, relative to /api/v1. */

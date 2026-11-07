@@ -82,12 +82,15 @@
       <p>When someone interacts with you, it'll show up here.</p>
     </section>
   } @else {
+    <fc-auth-error [error]="actionError()" context="generic" />
+
     <ul class="rows">
       @for (n of items(); track n.id) {
         <!-- The whole row is the link, not just the actor's name: a notification is about its
              subject, and the row text ("Alice sent you a message") reads as the accessible name.
              A separate profile link inside a row link would be invalid nested-anchor markup, and
-             the actor is reachable from every subject anyway — so nothing is lost. -->
+             the actor is reachable from every subject anyway — so nothing is lost. Row actions
+             live beside the link, never inside it. -->
         <li class="row" [class.unread]="!n.isRead">
           <a class="row-link" [routerLink]="targetLink(n)">
             <span class="avatar" aria-hidden="true">{{
@@ -101,6 +104,28 @@
               <time [attr.datetime]="n.createdAt">{{ n.createdAt | relativeTime }}</time>
             </div>
           </a>
+          <div class="row-actions">
+            @if (!n.isRead) {
+              <button
+                type="button"
+                class="row-action"
+                [disabled]="actionBusy() === n.id"
+                [attr.aria-label]="'Mark notification from ' + n.actor.displayName + ' as read'"
+                (click)="markRead(n)"
+              >
+                Mark read
+              </button>
+            }
+            <button
+              type="button"
+              class="row-action danger"
+              [disabled]="actionBusy() === n.id"
+              [attr.aria-label]="'Delete notification from ' + n.actor.displayName"
+              (click)="remove(n)"
+            >
+              {{ actionBusy() === n.id ? '…' : 'Delete' }}
+            </button>
+          </div>
         </li>
       }
     </ul>

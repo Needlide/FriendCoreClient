@@ -100,6 +100,31 @@
   min-height: 2rem;
 }
 
+.like-group {
+  display: flex;
+  align-items: center;
+  gap: var(--fc-space-1);
+}
+
+.like-count {
+  font: inherit;
+  font-size: var(--fc-text-sm);
+  border: 0;
+  background: none;
+  color: var(--fc-text-muted);
+  min-height: 2rem;
+  padding: var(--fc-space-1) 0;
+}
+
+button.like-count {
+  cursor: pointer;
+}
+
+button.like-count:hover {
+  color: var(--fc-text);
+  text-decoration: underline;
+}
+
 .like[aria-pressed='true'] {
   color: var(--fc-danger);
 }

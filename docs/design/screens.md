@@ -299,7 +299,7 @@ closed, so Escape/backdrop dismiss does not discard a draft.
 | | |
 |---|---|
 | **Route** | `/notifications` |
-| **API** | `GET /api/v1/notifications`, `GET /api/v1/notifications/unread-count`, `POST /api/v1/notifications/read` |
+| **API** | `GET /api/v1/notifications`, `GET /api/v1/notifications/unread-count`, `POST /api/v1/notifications/read`, `POST /api/v1/notifications/{id}/read`, `DELETE /api/v1/notifications/{id}` |
 | **Realtime** | `NotificationReceived` → bump badge, reconcile list |
 
 | State | Design requirement |
@@ -307,6 +307,8 @@ closed, so Escape/backdrop dismiss does not discard a draft.
 | ✅ List | NotificationItem rows with hydrated REST data |
 | ✅ Empty | "No notifications" |
 | ✅ Mark all read | Action in header |
+| ✅ Per-row read | "Mark read" on unread rows; row loses its unread edge; badge adopts the returned count |
+| ✅ Per-row delete | Removes the row; an unread row drops out of the badge; failures keep the row and show the error |
 | ✅ Bell badge | Quiet count in app shell (no pulse) |
 
 ---
@@ -460,12 +462,12 @@ table to track the remaining Figma + responsive work, not code completion.
 | Auth | `/auth/register`, `/login`, `/verify-email`, `/refresh`, `/logout`, `/resend-verification` |
 | Feed | `/feed/home` |
 | Discovery | `/feed/discovery/people`, `/feed/discovery/posts` |
-| Posts | `/posts`, `/posts/{id}`, `/posts/{id}/like`, `/posts/{id}/comments`, `/comments/{commentId}` (delete), `/posts/{id}/report` |
+| Posts | `/posts`, `/posts/{id}`, `/posts/{id}/like`, `/posts/{id}/likes`, `/posts/{id}/comments`, `/comments/{commentId}` (delete), `/posts/{id}/report` |
 | Media | `/media`, `/media/{id}/status`, `/media/{id}` (delete) |
 | Users | `/users/{username}`, `/users/{username}/posts`, `/users/me/profile`, `/users/me/preferences` (GET+PATCH), `/users/me/tags`, `/users/me/keyword-filters` (GET+PATCH), follow/unfollow, block/unblock, mute/unmute, followers/following lists, `/users/{username}/report` |
 | Tags | `/tags/autocomplete` |
 | Messaging | `/conversations`, `/conversations/support`, `/conversations/{id}/messages`, `/conversations/{id}/read` |
-| Notifications | `/notifications`, `/notifications/unread-count`, `/notifications/read` |
+| Notifications | `/notifications`, `/notifications/unread-count`, `/notifications/read`, `/notifications/{id}/read`, `/notifications/{id}` (delete) |
 | Appeals | `/users/me/moderation-actions`, `/appeals` |
 
 Full API details: backend Technical Specifications §17.2, `docs/UI-Plan.md` §1–2,

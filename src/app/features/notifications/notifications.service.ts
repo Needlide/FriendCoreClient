@@ -51,6 +51,23 @@ export class NotificationsService {
     );
   }
 
+  /**
+   * Mark one notification read. The server returns the authoritative badge count, so this
+   * single action keeps the bell correct without a second unread-count request.
+   */
+  markRead(id: string): Observable<UnreadCountResponse> {
+    return this.api
+      .post<UnreadCountResponse>(NotificationsEndpoints.markReadById(id))
+      .pipe(tap((res) => this.unread.set(res.count)));
+  }
+
+  /** Delete one notification; an unread row also drops out of the badge count. */
+  delete(id: string): Observable<UnreadCountResponse> {
+    return this.api
+      .delete<UnreadCountResponse>(NotificationsEndpoints.byId(id))
+      .pipe(tap((res) => this.unread.set(res.count)));
+  }
+
   loadSnooze(): void {
     this.api.get<NotificationSnoozeResponse>(UsersEndpoints.snooze).subscribe({
       next: (res) => this.snoozedUntil.set(res.snoozedUntil),

@@ -1,0 +1,29 @@
+<dialog #dialog class="likers" aria-labelledby="likers-h">
+  <h2 id="likers-h">Liked by</h2>
+
+  @if (loading()) {
+    <p role="status">Loading…</p>
+  } @else if (error()) {
+    <fc-auth-error [error]="error()" context="generic" />
+  } @else if (users().length === 0) {
+    <p class="empty">No likes to show.</p>
+  } @else {
+    <ul class="people">
+      @for (person of users(); track person.userId) {
+        <li>
+          <a [routerLink]="['/u', person.username]" (click)="close()">
+            <span class="avatar" aria-hidden="true">{{ initials(person.displayName) }}</span>
+            <span class="who">
+              <strong>{{ person.displayName }}</strong>
+              <span class="username">@{{ person.username }}</span>
+            </span>
+          </a>
+        </li>
+      }
+    </ul>
+  }
+
+  <div class="actions">
+    <button type="button" class="fc-secondary" autofocus (click)="close()">Close</button>
+  </div>
+</dialog>

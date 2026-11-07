@@ -36,6 +36,10 @@ export class Notifications implements OnDestroy {
   protected readonly items = signal<NotificationItem[]>([]);
   private subscription: Subscription;
 
+  /** One row action at a time; also keeps a double-click from sending two deletes. */
+  protected readonly actionBusy = signal<string | null>(null);
+  protected readonly actionError = signal<ApiError | null>(null);
+
   /**
    * Per-type mute state. Checked = notifies; unchecking saves immediately (whole-set
    * PUT, same pattern as keyword filters). Muted types are never CREATED server-side,
@@ -90,6 +94,48 @@ export class Notifications implements OnDestroy {
 
   protected isMuted(type: string): boolean {
     return this.muted().has(type);
+  }
+
+  protected markRead(notification: NotificationItem): void {
+    if (notification.isRead || this.actionBusy()) return;
+    this.actionBusy.set(notification.id);
+    this.actionError.set(null);
+    this.notifications
+      .markRead(notification.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.items.update((items) =>
+            items.map((item) =>
+              item.id === notification.id ? { ...item, isRead: true } : item,
+            ),
+          );
+          this.actionBusy.set(null);
+        },
+        error: (err: unknown) => {
+          this.actionError.set(err instanceof ApiError ? err : null);
+          this.actionBusy.set(null);
+        },
+      });
+  }
+
+  protected remove(notification: NotificationItem): void {
+    if (this.actionBusy()) return;
+    this.actionBusy.set(notification.id);
+    this.actionError.set(null);
+    this.notifications
+      .delete(notification.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.items.update((items) => items.filter((item) => item.id !== notification.id));
+          this.actionBusy.set(null);
+        },
+        error: (err: unknown) => {
+          this.actionError.set(err instanceof ApiError ? err : null);
+          this.actionBusy.set(null);
+        },
+      });
   }
 
   /** Active silence instant, if any — read from the shared service state. */

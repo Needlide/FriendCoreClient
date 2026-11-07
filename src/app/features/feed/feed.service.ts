@@ -5,6 +5,7 @@ import { CommentsEndpoints, FeedEndpoints, PostsEndpoints } from '../../core/con
 import {
   CommentFeedResponse,
   CreatePostRequest,
+  LikeListResponse,
   Post,
   PostComment,
   PostFeedResponse,
@@ -44,6 +45,11 @@ export class FeedService {
 
   getPost(id: string): Observable<Post> {
     return this.api.get<Post>(PostsEndpoints.byId(id));
+  }
+
+  /** Who liked a post, newest first. Anonymous-readable, like the post itself. */
+  getLikes(postId: string): Observable<LikeListResponse> {
+    return this.api.get<LikeListResponse>(PostsEndpoints.likes(postId));
   }
 
   getComments(postId: string, cursor?: string | null): Observable<CommentFeedResponse> {

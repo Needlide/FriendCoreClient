@@ -39,15 +39,29 @@
   }
 
   <footer class="actions">
-    <button
-      type="button"
-      class="like"
-      [attr.aria-pressed]="isLiked()"
-      [attr.aria-label]="(isLiked() ? 'Unlike' : 'Like') + ' this post'"
-      (click)="toggleLike()"
-    >
-      {{ isLiked() ? '♥' : '♡' }} {{ likeCount() }}
-    </button>
+    <span class="like-group">
+      <button
+        type="button"
+        class="like"
+        [attr.aria-pressed]="isLiked()"
+        [attr.aria-label]="(isLiked() ? 'Unlike' : 'Like') + ' this post'"
+        (click)="toggleLike()"
+      >
+        {{ isLiked() ? '♥' : '♡' }}
+      </button>
+      @if (likeCount() > 0) {
+        <button
+          type="button"
+          class="like-count"
+          [attr.aria-label]="'View ' + likeCount() + ' likes'"
+          (click)="openLikers(likersDialog)"
+        >
+          {{ likeCount() }}
+        </button>
+      } @else {
+        <span class="like-count">0</span>
+      }
+    </span>
     <a
       class="comments"
       [routerLink]="['/posts', post().id]"
@@ -73,4 +87,5 @@
     </button>
   </footer>
   <fc-report-dialog #reportDialog [target]="reportTarget()" />
+  <fc-likers-dialog #likersDialog [postId]="post().id" />
 </article>

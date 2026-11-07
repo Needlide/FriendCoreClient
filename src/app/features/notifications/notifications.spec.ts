@@ -151,6 +151,61 @@ describe('Notifications', () => {
     expect(TestBed.inject(NotificationsService).unread()).toBe(0);
   });
 
+  it('marks one notification read and updates the badge from the response', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/notifications').flush(list);
+    fixture.detectChanges();
+    expect(el.querySelector('.row.unread')).not.toBeNull();
+
+    el.querySelector<HTMLButtonElement>(
+      'button[aria-label="Mark notification from Bob as read"]',
+    )!.click();
+    const req = expectApi(http, '/notifications/n1/read');
+    expect(req.request.method).toBe('POST');
+    req.flush({ count: 0 });
+    fixture.detectChanges();
+
+    expect(el.querySelector('.row.unread')).toBeNull();
+    expect(el.textContent).not.toContain('Mark read');
+    expect(TestBed.inject(NotificationsService).unread()).toBe(0);
+  });
+
+  it('deletes one notification and adopts the server count', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/notifications').flush(list);
+    fixture.detectChanges();
+
+    el.querySelector<HTMLButtonElement>(
+      'button[aria-label="Delete notification from Bob"]',
+    )!.click();
+    const req = expectApi(http, '/notifications/n1');
+    expect(req.request.method).toBe('DELETE');
+    req.flush({ count: 0 });
+    fixture.detectChanges();
+
+    expect(el.textContent).not.toContain('Bob started following you');
+    expect(el.textContent).toContain('Nothing new');
+    expect(TestBed.inject(NotificationsService).unread()).toBe(0);
+  });
+
+  it('keeps the row when a row action fails', () => {
+    const { fixture, el } = create();
+    expectApi(http, '/notifications').flush(list);
+    fixture.detectChanges();
+
+    el.querySelector<HTMLButtonElement>(
+      'button[aria-label="Delete notification from Bob"]',
+    )!.click();
+    expectApi(http, '/notifications/n1').flush(
+      [{ code: 'Server.Error', description: 'Could not delete that.', type: 'Unexpected' }],
+      { status: 500, statusText: 'Server Error' },
+    );
+    fixture.detectChanges();
+
+    expect(el.textContent).toContain('Could not delete that.');
+    expect(el.textContent).toContain('Bob started following you');
+  });
+
   it('shows the calm empty state with no notifications', () => {
     const { fixture, el } = create();
     expectApi(http, '/notifications').flush({ notifications: [] });

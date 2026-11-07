@@ -56,9 +56,9 @@ the interface:
 | `/` | Follow-only chronological feed with cursor pagination, optimistic delete, and post composer modal |
 | `/discover` | Tag-matched people and posts, with follow/block/mute actions |
 | `/u/:username` | Profile, follow state, posts, followers/following |
-| `/posts/:id` | Post detail with comments and likes |
+| `/posts/:id` | Post detail with comments, likes, and a likers dialog |
 | `/messages` · `/messages/:id` | Conversation list and 1:1 thread: replies, reactions, edit/delete, search, read state, unread badges |
-| `/notifications` | Notification list, mark-all-read, per-type mute, snooze |
+| `/notifications` | Notification list with per-row read/delete, mark-all-read, per-type mute, snooze |
 | `/onboarding` | Interest selection and suggested follows |
 | `/settings/*` | Profile, interests, preferences, keyword filters, blocks & mutes, appeals, account |
 | `/admin/*` | Moderation dashboard, reports, appeals, users, tags, audit log (role-gated) |
@@ -107,7 +107,7 @@ in sync with the implementation.
 npm test
 ```
 
-**343 unit tests** across 51 files, using Vitest with jsdom through the Angular
+**350 unit tests** across 52 files, using Vitest with jsdom through the Angular
 test builder. HTTP is intercepted per test with `HttpTestingController`; realtime
 behaviour is driven through subjects. The suite covers components, guards,
 interceptors, services, form validation, and accessibility contracts.

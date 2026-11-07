@@ -1,4 +1,5 @@
 import { SafetyFlags } from '../../core/models/safety-flags';
+import { UserSummary } from './profile.models';
 
 /**
  * Post + feed + media contracts. Mirror the API exactly (camelCase) — do not rename.
@@ -57,6 +58,11 @@ export interface Post {
 export interface PostFeedResponse {
   posts: Post[];
   nextCursor: string | null;
+}
+
+/** GET /posts/{id}/likes — newest first; block-hidden likers are omitted by the server. */
+export interface LikeListResponse {
+  users: UserSummary[];
 }
 
 /** POST /posts */

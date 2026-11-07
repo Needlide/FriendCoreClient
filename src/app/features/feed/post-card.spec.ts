@@ -25,6 +25,11 @@ describe('PostCard', () => {
   let http: HttpTestingController;
 
   beforeEach(async () => {
+    // jsdom implements <dialog> markup but not showModal(); the post card opens the
+    // likers dialog, so stub the one method the component needs.
+    window.HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
     await configureAuthTestBed([PostCard]);
     http = TestBed.inject(HttpTestingController);
   });
@@ -44,7 +49,27 @@ describe('PostCard', () => {
     expect(el.textContent).toContain('@bob');
     expect(el.textContent).toContain('hello');
     expect(el.textContent).toContain('#synths');
-    expect(el.querySelector('.like')?.textContent).toContain('4');
+    expect(el.querySelector('.like-count')?.textContent).toContain('4');
+  });
+
+  it('opens the likers list from the count', () => {
+    const { fixture, el } = create();
+    el.querySelector<HTMLButtonElement>('.like-count')!.click();
+    expectApi(http, '/posts/p1/likes').flush({
+      users: [
+        {
+          userId: 'u1',
+          username: 'alice',
+          displayName: 'Alice',
+          isVerified: true,
+          isFollowedByViewer: false,
+        },
+      ],
+    });
+    fixture.detectChanges();
+
+    expect(el.querySelector('dialog.likers')?.hasAttribute('open')).toBe(true);
+    expect(el.textContent).toContain('Alice');
   });
 
   it('copies the post permalink to the clipboard', () => {
@@ -64,10 +89,10 @@ describe('PostCard', () => {
     const { fixture, el } = create();
     el.querySelector<HTMLButtonElement>('.like')!.click();
     fixture.detectChanges();
-    expect(el.querySelector('.like')?.textContent).toContain('5');
+    expect(el.querySelector('.like-count')?.textContent).toContain('5');
     expectApi(http, '/posts/p1/like').flush(null);
     fixture.detectChanges();
-    expect(el.querySelector('.like')?.textContent).toContain('5');
+    expect(el.querySelector('.like-count')?.textContent).toContain('5');
   });
 
   it('rolls the like back when the server rejects it', () => {
@@ -75,7 +100,7 @@ describe('PostCard', () => {
     el.querySelector<HTMLButtonElement>('.like')!.click();
     expectApi(http, '/posts/p1/like').flush(null, { status: 500, statusText: 'x' });
     fixture.detectChanges();
-    expect(el.querySelector('.like')?.textContent).toContain('4');
+    expect(el.querySelector('.like-count')?.textContent).toContain('4');
     expect(el.querySelector('.like')?.getAttribute('aria-pressed')).toBe('false');
   });
 
