@@ -54,6 +54,12 @@ export class ReportDialog {
     return target.kind === 'user' ? `Report @${target.username}` : 'Report this post';
   }
 
+  /** Unique per dialog instance: one report dialog is mounted inside every post card. */
+  protected noteId(): string {
+    const target = this.target();
+    return target.kind === 'user' ? `report-note-${target.username}` : `report-note-${target.id}`;
+  }
+
   protected submit(): void {
     const category = this.chosen();
     if (!category || this.sending()) return;

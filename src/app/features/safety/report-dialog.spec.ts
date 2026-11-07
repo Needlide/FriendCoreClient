@@ -36,6 +36,16 @@ describe('ReportDialog', () => {
     expect(el.querySelector<HTMLButtonElement>('.actions .fc-primary')!.disabled).toBe(true);
   });
 
+  it('labels the dialog and note field with instance-unique ids', () => {
+    const { el } = create();
+    const note = el.querySelector('textarea')!;
+    const label = el.querySelector('label[for]')!;
+    expect(el.querySelector('dialog')?.getAttribute('aria-label')).toBe('Report this post');
+    expect(label.getAttribute('for')).toBe(note.id);
+    expect(note.id).toContain('p1');
+    expect(el.querySelectorAll('#report-h, #report-note').length).toBe(0);
+  });
+
   it('posts the category plus note and thanks the reporter', () => {
     vi.useFakeTimers();
     try {

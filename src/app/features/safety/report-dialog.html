@@ -1,5 +1,5 @@
-<dialog #dialog class="report" aria-labelledby="report-h" (close)="chosen.set(null)">
-  <h2 id="report-h">{{ title() }}</h2>
+<dialog #dialog class="report" [attr.aria-label]="title()" (close)="chosen.set(null)">
+  <h2>{{ title() }}</h2>
   <p class="sub">
     Your report is reviewed by a person. Misuse of reporting may affect your account.
   </p>
@@ -31,9 +31,9 @@
       }
     </div>
 
-    <label class="note-label" for="report-note">Details (optional)</label>
+    <label class="note-label" [attr.for]="noteId()">Details (optional)</label>
     <textarea
-      id="report-note"
+      [attr.id]="noteId()"
       rows="2"
       [ngModel]="note()"
       (ngModelChange)="note.set($event)"
