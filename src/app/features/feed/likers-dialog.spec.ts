@@ -52,6 +52,8 @@ describe('LikersDialog', () => {
     fixture.detectChanges();
 
     expect(el.querySelector('dialog')?.hasAttribute('open')).toBe(true);
+    expect(el.querySelector('dialog')?.getAttribute('aria-label')).toBe('Liked by');
+    expect(el.querySelectorAll('[id]').length).toBe(0);
     expect(el.textContent).toContain('Alice Stone');
     expect(el.textContent).toContain('@alice');
     expect(el.textContent).toContain('Bob Reyes');

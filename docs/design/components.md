@@ -295,7 +295,7 @@ unrelated actions and two different accessible names.
 | A11y | Requirement |
 |---|---|
 | Role | Native `<dialog>` with `showModal()` focus trap |
-| Label | `aria-labelledby` pointing at the "Liked by" heading |
+| Label | `aria-label="Liked by"` on the dialog — a fixed id would be duplicated once every post card has its own dialog |
 | Keyboard | Close is autofocused; profile links are normal tab stops |
 
 ---
